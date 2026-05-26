@@ -3,6 +3,8 @@ venv/
 .venv/
 __pycache__/
 *.py[cod]
+.pytest_cache/
+.mypy_cache/
 
 # Local agent/config data
 .agent/
@@ -18,6 +20,7 @@ logs/
 # OS/editor files
 .DS_Store
 Thumbs.db
+.vscode/
 
 # Generated build outputs
 build/
@@ -25,12 +28,16 @@ build_pack_test/
 dist/
 dist_pack_test/
 *.exe
+*.zip
 *.pkg
 *.pyz
 *.dll
+*.msi
 
-# Local backup/experiment folder
+# Local-only folders
 _for_NOT_backup/
+dev_assets/
+release_assets/
 
 # Large videos are ignored by default, except game music assets.
 *.mp4

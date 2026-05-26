@@ -1,6 +1,6 @@
 # Ricochet Robots Python Edition
 
-這是 Ricochet Robots 的 Python / PyQt6 版本。專案目前同時保留 Godot 版本資料夾，但日常維護與打包主要針對根目錄的 Python 版。
+這是 Ricochet Robots 的 Python / PyQt6 版本。日常維護與打包主要針對根目錄的 Python 版；舊版或素材製作檔已集中到本機用的 `dev_assets/`，不進 Git。
 
 本 README 是給後續 agent / 維護者看的工作說明，重點是快速理解架構、常見修改點、測試方式與打包流程。
 
@@ -13,7 +13,9 @@
 - 固定棋盤資料與繪圖輔助：`ricochet_robots_board_data.py`
 - 資源檔：`assets/`
 - 打包設定：`RicochetRobots.spec`
-- Godot 版本：`GODOT_Version/`，除非使用者明確要求，請不要動。
+- 系統說明文件：`docs/`
+- 歷史打包設定：`packaging/legacy/`
+- 本機舊素材與發行檔：`dev_assets/`、`release_assets/`，兩者都被 `.gitignore` 忽略。
 
 ## Run And Build
 
@@ -41,7 +43,7 @@
 dist/RicochetRobots.exe
 ```
 
-注意：Windows 有時會鎖住正在執行或剛啟動過的 exe，導致 PyInstaller 覆寫失敗。打包前先關閉 `RicochetRobots.exe`。目前 `dist/RicochetRobots.old.exe` 是歷史舊檔，使用者表示可以先放著。
+注意：Windows 有時會鎖住正在執行或剛啟動過的 exe，導致 PyInstaller 覆寫失敗。打包前先關閉 `RicochetRobots.exe`。產出的 exe / zip 不要提交到 Git；需要發佈時請上傳到 GitHub Releases。
 
 ## Architecture
 
@@ -178,16 +180,17 @@ Super Expert 不是即時生成；它讀取預生成 JSON。若要重新產生�
 
 `RicochetRobots.spec` 會把整個 `assets` 資料夾打進 exe。
 
+舊素材、圖示製作原檔、參考圖片、舊 BGM source 與 Godot 版本資料目前集中在 `dev_assets/`，此資料夾是本機保存用途，不會被 Git 追蹤。既有 exe / zip 發行檔集中在 `release_assets/`，也不會被 Git 追蹤。
+
 ## Agent Working Rules
 
 維護這個專案時請注意：
 
-- 不要碰 `GODOT_Version/`，除非使用者明確要求。
 - 優先改 Python 根目錄檔案。
 - 手動改檔用 `apply_patch`。
 - 打包前確認 `dist/RicochetRobots.exe` 沒有正在執行。
 - 若 PyInstaller 報 `PermissionError`，通常是 exe 被 Windows 鎖住；先關閉相關行程再重試。
-- 不要刪除使用者提到要保留的舊 exe。
+- 不要把 exe / zip commit 進 Git；正式發佈請使用 GitHub Releases。
 - GUI 中文文字若出現亂碼，優先在 `main_gui.py` 對應 UI 區塊直接替換成正常中文。
 - Solver / generator 變更後，至少跑一次語法檢查與小型 scripted check。
 
