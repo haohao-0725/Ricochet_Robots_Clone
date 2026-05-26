@@ -1,0 +1,37 @@
+# Python local environment and caches
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+
+# Local agent/config data
+.agent/
+
+# Logs and temporary files
+*.log
+crash_log.txt
+error.log
+stderr.log
+tmp/
+logs/
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+
+# Generated build outputs
+build/
+build_pack_test/
+dist/
+dist_pack_test/
+*.exe
+*.pkg
+*.pyz
+*.dll
+
+# Local backup/experiment folder
+_for_NOT_backup/
+
+# Large videos are ignored by default, except game music assets.
+*.mp4
+!assets/music/*.mp4
