@@ -705,6 +705,7 @@ class MainWindow(QMainWindow):
         self.solver_task_id = 0
         self._migrate_legacy_save_if_needed()
         self.audio_settings = self.engine.read_settings(self.get_save_path())
+        self.engine.load_record_summary(self.get_save_path())
         self.music_enabled = bool(self.audio_settings.get('music_enabled', True))
         self.sound_enabled = bool(self.audio_settings.get('sound_enabled', True))
         self.bgm_files = self.find_bgm_files()

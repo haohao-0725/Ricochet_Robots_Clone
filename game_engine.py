@@ -459,6 +459,17 @@ class GameEngine:
         except Exception:
             return defaults
 
+    def load_record_summary(self, filepath):
+        try:
+            if not os.path.exists(filepath):
+                return False
+            document = self._read_save_document(filepath)
+            self.win_count = document.get('win_count', self.win_count)
+            self.saved_slots = document.get('slots', {})
+            return True
+        except Exception:
+            return False
+
     def save_settings(self, filepath, settings):
         try:
             document = self._read_save_document(filepath)
