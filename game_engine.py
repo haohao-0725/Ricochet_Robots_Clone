@@ -111,7 +111,7 @@ class GameEngine:
         }
         self.start_robots = self.robots.copy()
         self.difficulty_mode = 'v3_momentum'
-        self.current_target_idx = self._pick_starting_target_idx()
+        self.current_target_idx = 0
 
     def load_generated_board(self, board_data):
         from ricochet_robots_board_data import build_board_matrix_from_walls
@@ -204,9 +204,6 @@ class GameEngine:
         candidates = self._ordered_uncompleted_target_indices(exclude_current=exclude_current)
         if not candidates:
             return self.current_target_idx
-
-        if self.difficulty_mode == 'v3_momentum':
-            return candidates[0]
 
         needs_full_solve = []
         within_three_steps = []

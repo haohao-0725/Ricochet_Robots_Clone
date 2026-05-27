@@ -106,6 +106,119 @@ class SolverThread(QThread):
         )
         self.finished_signal.emit(self.task_id, steps, path)
 
+
+class TargetPickerThread(QThread):
+    finished_signal = pyqtSignal(int, int)
+
+    def __init__(
+        self,
+        task_id,
+        board,
+        robots_dict,
+        targets,
+        completed_targets,
+        current_target_idx,
+        grid_size=16,
+        diagonal_walls=None,
+        movement_mode='classic',
+        exclude_current=False,
+    ):
+        super().__init__()
+        self.task_id = task_id
+        self.board = board
+        self.robots_dict = robots_dict.copy()
+        self.targets = [(name, tuple(pos)) for name, pos in targets]
+        self.completed_targets = set(completed_targets)
+        self.current_target_idx = current_target_idx
+        self.grid_size = grid_size
+        self.diagonal_walls = diagonal_walls or {}
+        self.movement_mode = movement_mode
+        self.exclude_current = exclude_current
+        self._cancelled = False
+
+    def cancel(self):
+        self._cancelled = True
+
+    def is_cancelled(self):
+        return self._cancelled
+
+    def run(self):
+        next_idx = self.pick_target_idx()
+        self.finished_signal.emit(self.task_id, next_idx)
+
+    def ordered_uncompleted_target_indices(self):
+        candidates = []
+        offsets = range(1, len(self.targets)) if self.exclude_current else range(len(self.targets))
+        for offset in offsets:
+            idx = (self.current_target_idx + offset) % len(self.targets)
+            name, _ = self.targets[idx]
+            if name not in self.completed_targets:
+                candidates.append(idx)
+        if self.exclude_current and not candidates and self.targets:
+            current_name, _ = self.targets[self.current_target_idx]
+            if current_name not in self.completed_targets:
+                candidates.append(self.current_target_idx)
+        return candidates
+
+    def target_solve_steps(self, target_name, target_pos, max_depth=22, max_states=220000):
+        if self.is_cancelled():
+            return -2
+        try:
+            target_color = target_name.split('_')[0]
+            diag = {tuple(k) if isinstance(k, list) else k: v for k, v in self.diagonal_walls.items()} if self.diagonal_walls else {}
+            solver = RicochetSolver(
+                self.board,
+                grid_size=self.grid_size,
+                diagonal_walls=diag,
+                movement_mode=self.movement_mode,
+            )
+            steps, _ = solver.solve(
+                self.robots_dict,
+                target_color,
+                target_pos,
+                max_depth=max_depth,
+                max_states=max_states,
+                cancel_callback=self.is_cancelled,
+            )
+            return steps
+        except Exception:
+            return -1
+
+    def pick_target_idx(self):
+        candidates = self.ordered_uncompleted_target_indices()
+        if not candidates:
+            return self.current_target_idx
+
+        needs_full_solve = []
+        within_three_steps = []
+        unknown = []
+
+        for idx in candidates:
+            name, pos = self.targets[idx]
+            steps = self.target_solve_steps(name, pos, max_depth=3, max_states=50000)
+            if 0 <= steps <= 3:
+                within_three_steps.append(idx)
+            else:
+                needs_full_solve.append(idx)
+
+        for idx in needs_full_solve:
+            if self.is_cancelled():
+                return candidates[0]
+            name, pos = self.targets[idx]
+            steps = self.target_solve_steps(name, pos)
+            if steps > 3:
+                return idx
+            if 0 <= steps <= 3:
+                within_three_steps.append(idx)
+            else:
+                unknown.append(idx)
+
+        for group in (within_three_steps, unknown):
+            if group:
+                return group[0]
+
+        return self.current_target_idx
+
 CELL_SIZE = 40
 BOARD_SIZE = CELL_SIZE * GRID_SIZE
 DIAG_COLOR_MAP = {
@@ -612,6 +725,10 @@ class MainWindow(QMainWindow):
         self.solver_timer = QTimer(self)
         self.solver_timer.timeout.connect(self.update_solver_progress_text)
         self.active_solver_thread = None
+        self.target_picker_task_id = 0
+        self.active_target_picker_thread = None
+        self.pending_momentum_target_pick = None
+        self.waiting_for_momentum_target_pick = False
         self.pending_generation_previous_state = None
         self.pending_generation_mode = None
         
@@ -1411,6 +1528,15 @@ class MainWindow(QMainWindow):
         self.do_next_target(mark_completed=mark_completed)
 
     def do_next_target(self, mark_completed=True):
+        if self.engine.difficulty_mode == 'v3_momentum':
+            self.start_momentum_target_pick(
+                mark_completed=mark_completed,
+                exclude_current=not mark_completed,
+                show_overlay=True,
+                defer_apply=False,
+            )
+            return
+
         cleared = self.engine.next_target(mark_completed=mark_completed)
         if cleared:
             self.play_sound('finish')
@@ -1437,6 +1563,13 @@ class MainWindow(QMainWindow):
                 self.target_label.setText("成功！")
                 self.target_label.setStyleSheet("color: #55FF55;")
                 self.play_sound('target')
+                if self.engine.difficulty_mode == 'v3_momentum':
+                    self.start_momentum_target_pick(
+                        mark_completed=True,
+                        exclude_current=False,
+                        show_overlay=False,
+                        defer_apply=True,
+                    )
                 if not hasattr(self, 'success_timer'):
                     self.success_timer = QTimer(self)
                     self.success_timer.timeout.connect(self.success_tick)
@@ -1445,7 +1578,11 @@ class MainWindow(QMainWindow):
 
     def success_tick(self):
         self.success_ticks += 1
-        if self.success_ticks >= 30:
+        target_pick_ready = (
+            self.engine.difficulty_mode != 'v3_momentum'
+            or self.pending_momentum_target_pick is not None
+        )
+        if self.success_ticks >= 30 and target_pick_ready:
             self.success_timer.stop()
             self.set_default_style()
             self.auto_next()
@@ -1460,7 +1597,127 @@ class MainWindow(QMainWindow):
 
     def auto_next(self):
         if not self.engine.test_mode:
+            if self.engine.difficulty_mode == 'v3_momentum':
+                if self.pending_momentum_target_pick is not None:
+                    self.apply_momentum_target_pick(self.pending_momentum_target_pick)
+                else:
+                    self.waiting_for_momentum_target_pick = True
+                    self.show_target_pick_overlay()
+                return
             self.do_next_target(mark_completed=True)
+
+    def show_target_pick_overlay(self):
+        self.set_buttons_enabled(False)
+        self.overlay_widget.resize(self.board_view.size())
+        self.overlay_label.setText("抽選目標中...")
+        self.cancel_generation_btn.hide()
+        self.overlay_widget.show()
+
+    def hide_target_pick_overlay(self):
+        self.overlay_widget.hide()
+        self.cancel_generation_btn.show()
+        self.set_buttons_enabled(True)
+
+    def start_momentum_target_pick(self, mark_completed=True, exclude_current=False, show_overlay=False, defer_apply=False):
+        if self.active_target_picker_thread and self.active_target_picker_thread.isRunning():
+            return
+
+        current_target_name = self.engine.get_current_target()[0]
+        completed_targets = set(self.engine.completed_targets)
+        if mark_completed:
+            completed_targets.add(current_target_name)
+
+        if mark_completed and len(completed_targets) >= len(self.engine.targets):
+            self.pending_momentum_target_pick = {
+                'mark_completed': mark_completed,
+                'completed_targets': completed_targets,
+                'cleared': True,
+                'defer_apply': defer_apply,
+            }
+            if not defer_apply:
+                if show_overlay:
+                    self.show_target_pick_overlay()
+                self.apply_momentum_target_pick(self.pending_momentum_target_pick)
+            return
+
+        self.pending_momentum_target_pick = None
+        self.waiting_for_momentum_target_pick = False
+        self.target_picker_task_id += 1
+
+        if show_overlay:
+            self.show_target_pick_overlay()
+
+        thread = TargetPickerThread(
+            self.target_picker_task_id,
+            self.engine.board,
+            self.engine.robots.copy(),
+            self.engine.targets,
+            completed_targets,
+            self.engine.current_target_idx,
+            grid_size=self.engine.grid_size,
+            diagonal_walls=self.engine.diagonal_walls,
+            movement_mode=self.engine._solver_movement_mode(),
+            exclude_current=exclude_current,
+        )
+        thread.defer_apply = defer_apply
+        thread.mark_completed = mark_completed
+        thread.completed_targets = completed_targets
+        self.active_target_picker_thread = thread
+        thread.finished_signal.connect(self.on_momentum_target_pick_finished)
+        thread.finished.connect(thread.deleteLater)
+
+        if not hasattr(self, 'active_threads'):
+            self.active_threads = set()
+        self.active_threads.add(thread)
+        thread.finished.connect(lambda: self.active_threads.discard(thread) if thread in self.active_threads else None)
+        thread.start()
+
+    def on_momentum_target_pick_finished(self, task_id, next_idx):
+        if task_id != self.target_picker_task_id:
+            return
+
+        thread = self.active_target_picker_thread
+        self.active_target_picker_thread = None
+        pick = {
+            'mark_completed': getattr(thread, 'mark_completed', True),
+            'completed_targets': getattr(thread, 'completed_targets', set(self.engine.completed_targets)),
+            'next_idx': next_idx,
+            'cleared': False,
+            'defer_apply': getattr(thread, 'defer_apply', False),
+        }
+        self.pending_momentum_target_pick = pick
+
+        if self.waiting_for_momentum_target_pick or not pick['defer_apply']:
+            self.apply_momentum_target_pick(pick)
+
+    def apply_momentum_target_pick(self, pick):
+        self.pending_momentum_target_pick = None
+        self.waiting_for_momentum_target_pick = False
+        self.engine.completed_targets = set(pick.get('completed_targets', self.engine.completed_targets))
+
+        if pick.get('cleared'):
+            self.hide_target_pick_overlay()
+            self.play_sound('finish')
+            QMessageBox.information(self, "恭喜", "恭喜破關！準備開始下一輪。")
+            self.engine.reset_game(full_reset=False)
+            self.board_view.highlight_item.hide()
+            self.board_view.selected_color = None
+            self.board_view.draw_robots()
+            self.save_game_silent()
+        else:
+            self.engine.current_target_idx = pick['next_idx']
+            self.engine.steps = 0
+            self.engine.move_history = []
+            self.engine.last_move_changed_colors = []
+            self.engine.last_move_animation_steps = []
+            self.engine.start_robots = self.engine.robots.copy()
+            self.hide_target_pick_overlay()
+
+        self.update_ui(clear_solver=True)
+        self.update_checklist()
+        if not self.engine.test_mode:
+            self.target_label.setText("目前目標")
+            self.target_label.setStyleSheet("color: #EEEEEE;")
 
     # ====== Test Mode ======
     def toggle_test_mode(self):
