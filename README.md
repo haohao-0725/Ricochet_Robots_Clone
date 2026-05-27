@@ -6,7 +6,7 @@ Ricochet Robots 的 Python / PyQt6 桌面版。遊戲包含經典 16x16 棋盤�
 
 Windows 使用者請到最新 GitHub Release 下載：
 
-- [RicochetRobots.exe](https://github.com/haohao-0725/Ricochet_Robots_Clone/releases/download/v2.7.0/RicochetRobots.exe)
+- [RicochetRobots.exe](https://github.com/haohao-0725/Ricochet_Robots_Clone/releases/download/v3.0.0/RicochetRobots.exe)
 
 GitHub Release 頁面底部會自動出現 `Source code (zip)` 和 `Source code (tar.gz)`。那是 GitHub 自動產生的原始碼壓縮檔，不是遊戲執行檔。只想玩遊戲的話，請下載 `RicochetRobots.exe`。
 

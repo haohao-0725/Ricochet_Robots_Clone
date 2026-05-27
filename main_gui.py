@@ -1699,10 +1699,11 @@ class MainWindow(QMainWindow):
             self.hide_target_pick_overlay()
             self.play_sound('finish')
             QMessageBox.information(self, "恭喜", "恭喜破關！準備開始下一輪。")
-            self.engine.reset_game(full_reset=False)
+            self.engine.win_count += 1
+            self.engine.reset_to_v3_momentum_board(full_reset=False)
             self.board_view.highlight_item.hide()
             self.board_view.selected_color = None
-            self.board_view.draw_robots()
+            self.board_view.full_redraw()
             self.save_game_silent()
         else:
             self.engine.current_target_idx = pick['next_idx']
