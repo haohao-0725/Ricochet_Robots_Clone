@@ -61,7 +61,17 @@ class SolverThread(QThread):
     finished_signal = pyqtSignal(int, int, list)
     progress_signal = pyqtSignal(int, int)
 
-    def __init__(self, task_id, board, robots_dict, target_color, target_pos, grid_size=16, diagonal_walls=None):
+    def __init__(
+        self,
+        task_id,
+        board,
+        robots_dict,
+        target_color,
+        target_pos,
+        grid_size=16,
+        diagonal_walls=None,
+        movement_mode='classic',
+    ):
         super().__init__()
         self.task_id = task_id
         self.board = board
@@ -70,6 +80,7 @@ class SolverThread(QThread):
         self.target_pos = target_pos
         self.grid_size = grid_size
         self.diagonal_walls = diagonal_walls or {}
+        self.movement_mode = movement_mode
         self._cancelled = False
 
     def cancel(self):
@@ -80,7 +91,12 @@ class SolverThread(QThread):
 
     def run(self):
         diag = {tuple(k) if isinstance(k, list) else k: v for k, v in self.diagonal_walls.items()} if self.diagonal_walls else {}
-        solver = RicochetSolver(self.board, grid_size=self.grid_size, diagonal_walls=diag)
+        solver = RicochetSolver(
+            self.board,
+            grid_size=self.grid_size,
+            diagonal_walls=diag,
+            movement_mode=self.movement_mode,
+        )
         steps, path = solver.solve(
             self.robots_dict,
             self.target_color,
@@ -412,7 +428,12 @@ class BoardView(QGraphicsView):
         if self.animating or not self.selected_color:
             return False
         if self.engine.move_robot(self.selected_color, direction):
-            self.animate_robot(self.selected_color)
+            steps = getattr(self.engine, 'last_move_animation_steps', None)
+            if steps:
+                self.animate_move_sequence(steps)
+            else:
+                changed = getattr(self.engine, 'last_move_changed_colors', [self.selected_color]) or [self.selected_color]
+                self.animate_robots(changed)
             return True
         return False
 
@@ -451,25 +472,89 @@ class BoardView(QGraphicsView):
                 self.move_selected(direction)
 
     def animate_robot(self, color):
+        self.animate_robots([color])
+
+    def animate_move_sequence(self, steps):
+        self.animation_sequence = list(steps)
+        self.animating = True
+        self.highlight_item.hide()
+        self.update_arrows()
         if hasattr(self.window(), 'play_sound'):
             self.window().play_sound('move')
-        self.animating = True
-        r, c = self.engine.robots[color]
-        end_pos = QPointF(c * CELL_SIZE, r * CELL_SIZE)
-        
+        if hasattr(self.window(), 'update_ui'):
+            self.window().update_ui()
+        self.play_next_animation_step()
+
+    def play_next_animation_step(self):
+        if not getattr(self, 'animation_sequence', None):
+            self.on_animation_finished()
+            return
+
+        step = self.animation_sequence.pop(0)
+        color = step.get('color')
+        to_pos = tuple(step.get('to', ()))
+        if color not in self.robot_items or len(to_pos) != 2:
+            self.play_next_animation_step()
+            return
+
+        r, c = to_pos
         item = self.robot_items[color]
+        end_pos = QPointF(c * CELL_SIZE, r * CELL_SIZE)
+        if item.pos() == end_pos:
+            self.play_next_animation_step()
+            return
+
         anim_obj = AnimatablePixmap(item)
         self.animations.append(anim_obj)
-        
+
         anim = QPropertyAnimation(anim_obj, b"pos")
         anim.setDuration(150)
         anim.setStartValue(item.pos())
         anim.setEndValue(end_pos)
         anim.setEasingCurve(QEasingCurve.Type.OutQuad)
-        anim.finished.connect(self.on_animation_finished)
+        anim.finished.connect(self.on_sequence_step_finished)
         anim.start()
-        
+
         anim_obj.anim = anim
+
+    def on_sequence_step_finished(self):
+        self.animations.clear()
+        QTimer.singleShot(40, self.play_next_animation_step)
+
+    def animate_robots(self, colors):
+        if hasattr(self.window(), 'play_sound'):
+            self.window().play_sound('move')
+        self.animating = True
+        self.pending_animation_count = 0
+
+        for color in colors:
+            if color not in self.robot_items or color not in self.engine.robots:
+                continue
+            r, c = self.engine.robots[color]
+            end_pos = QPointF(c * CELL_SIZE, r * CELL_SIZE)
+            item = self.robot_items[color]
+
+            if item.pos() == end_pos:
+                continue
+
+            anim_obj = AnimatablePixmap(item)
+            self.animations.append(anim_obj)
+
+            anim = QPropertyAnimation(anim_obj, b"pos")
+            anim.setDuration(150)
+            anim.setStartValue(item.pos())
+            anim.setEndValue(end_pos)
+            anim.setEasingCurve(QEasingCurve.Type.OutQuad)
+            anim.finished.connect(self.on_animation_finished)
+            anim.start()
+
+            anim_obj.anim = anim
+            self.pending_animation_count += 1
+
+        if self.pending_animation_count == 0:
+            self.draw_robots()
+            self.on_animation_finished()
+            return
         
         self.highlight_item.hide()
         self.update_arrows()
@@ -478,8 +563,15 @@ class BoardView(QGraphicsView):
             self.window().update_ui()
 
     def on_animation_finished(self):
+        if getattr(self, 'animation_sequence', None):
+            self.animation_sequence = []
+        if getattr(self, 'pending_animation_count', 0) > 1:
+            self.pending_animation_count -= 1
+            return
+        self.pending_animation_count = 0
         self.animating = False
         self.animations.clear()
+        self.draw_robots()
         
         if self.selected_color:
             r, c = self.engine.robots[self.selected_color]
@@ -809,6 +901,9 @@ class MainWindow(QMainWindow):
         
         self.btn_expert = QPushButton("Expert")
         self.btn_expert.clicked.connect(lambda: self.switch_difficulty('expert'))
+
+        self.btn_v3_momentum = QPushButton("Momentum")
+        self.btn_v3_momentum.clicked.connect(lambda: self.switch_difficulty('v3_momentum'))
         
         self.btn_super_expert = QPushButton("Super Expert")
         self.btn_super_expert.clicked.connect(lambda: self.switch_difficulty('super_expert'))
@@ -818,6 +913,7 @@ class MainWindow(QMainWindow):
             'normal': self.btn_normal,
             'hard': self.btn_hard,
             'expert': self.btn_expert,
+            'v3_momentum': self.btn_v3_momentum,
             'super_expert': self.btn_super_expert,
         }
         self.update_difficulty_button_styles()
@@ -862,6 +958,7 @@ class MainWindow(QMainWindow):
         top_bar_layout.addWidget(self.btn_normal)
         top_bar_layout.addWidget(self.btn_hard)
         top_bar_layout.addWidget(self.btn_expert)
+        top_bar_layout.addWidget(self.btn_v3_momentum)
         top_bar_layout.addWidget(self.btn_super_expert)
         top_bar_layout.addStretch()
         top_bar_layout.addWidget(self.music_btn)
@@ -923,6 +1020,7 @@ class MainWindow(QMainWindow):
             "Normal：棋盤會有一些變化，路線不一定直覺，適合想要多一點挑戰的玩家。\n\n"
             "Hard：加入 Silver 機器人與更複雜的牆面配置，常常需要先移動其他機器人來鋪路。\n\n"
             "Expert：會出現彩色斜牆。不同顏色的機器人面對斜牆時反應不同，解題時要多留意反射與穿越。\n\n"
+            "V3 Momentum：動量原型模式。機器人滑行後撞到另一台機器人時，會把已移動格數轉成同方向推動距離；撞牆會吸收剩餘動量。\n\n"
             "Super Expert：大型 32x32 高難度地圖，思考時間可能更長。生成或載入後建議先存檔。"
         )
 
@@ -1061,6 +1159,7 @@ class MainWindow(QMainWindow):
             target_pos,
             grid_size=self.engine.grid_size,
             diagonal_walls=self.engine.diagonal_walls,
+            movement_mode=self.engine._solver_movement_mode(),
         )
         self.active_solver_thread = thread
         thread.finished_signal.connect(self.on_solver_finished)
@@ -1461,6 +1560,10 @@ class MainWindow(QMainWindow):
             self.engine.reset_to_static_board()
             self.refresh_board_after_state_change(clear_solver=True)
             self.save_game_silent()
+        elif mode == 'v3_momentum':
+            self.engine.reset_to_v3_momentum_board()
+            self.refresh_board_after_state_change(clear_solver=True)
+            self.save_game_silent()
         elif mode == 'super_expert':
             self.start_super_expert()
         else:
@@ -1479,6 +1582,7 @@ class MainWindow(QMainWindow):
             'normal': ('background-color: #2196F3;', 'background-color: rgba(33,150,243,0.3);'),
             'hard': ('background-color: #FF9800;', 'background-color: rgba(255,152,0,0.3);'),
             'expert': ('background-color: #F44336;', 'background-color: rgba(244,67,54,0.3);'),
+            'v3_momentum': ('background-color: #00A896;', 'background-color: rgba(0,168,150,0.3);'),
             'super_expert': ('background-color: #9C27B0;', 'background-color: rgba(156,39,176,0.3);'),
         }
         for mode, btn in self.difficulty_btns.items():

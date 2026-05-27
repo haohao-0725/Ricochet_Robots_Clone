@@ -2,6 +2,7 @@ import random
 import json
 import os
 from ricochet_robots_board_data import build_board_matrix, TARGETS, GRID_SIZE
+from momentum_rules import resolve_momentum_move
 
 class GameEngine:
     def __init__(self):
@@ -30,6 +31,8 @@ class GameEngine:
         self.difficulty_mode = 'easy'
         self.diagonal_walls = {}
         self.saved_slots = {}
+        self.last_move_changed_colors = []
+        self.last_move_animation_steps = []
         
         self.reset_to_static_board(full_reset=True)
 
@@ -49,6 +52,8 @@ class GameEngine:
             self.steps = 0
             self.move_history = []
             self.robots = self.start_robots.copy()
+            self.last_move_changed_colors = []
+            self.last_move_animation_steps = []
 
     def reset_to_static_board(self, full_reset=True):
         from ricochet_robots_board_data import TARGETS, build_board_matrix
@@ -65,6 +70,8 @@ class GameEngine:
         self.backup_state = None
         self.steps = 0
         self.move_history = []
+        self.last_move_changed_colors = []
+        self.last_move_animation_steps = []
         
         # 固定機器人的起始位置 (依照使用者要求)
         self.robots = {
@@ -76,6 +83,34 @@ class GameEngine:
         self.start_robots = self.robots.copy()
         self.difficulty_mode = 'easy'
         self.diagonal_walls = {}
+        self.current_target_idx = self._pick_starting_target_idx()
+
+    def reset_to_v3_momentum_board(self, full_reset=True):
+        from ricochet_robots_board_data import TARGETS, build_board_matrix
+        self.grid_size = 16
+        self.board = build_board_matrix()
+        self.diagonal_walls = {}
+        self.targets = list(TARGETS.items())
+        if full_reset:
+            self.win_count = 0
+        self.current_target_idx = 0
+        random.shuffle(self.targets)
+        self.completed_targets.clear()
+        self.skipped_targets.clear()
+        self.test_mode = False
+        self.backup_state = None
+        self.steps = 0
+        self.move_history = []
+        self.last_move_changed_colors = []
+        self.last_move_animation_steps = []
+        self.robots = {
+            'Blue': (7, 6),
+            'Yellow': (6, 8),
+            'Green': (8, 9),
+            'Red': (9, 7)
+        }
+        self.start_robots = self.robots.copy()
+        self.difficulty_mode = 'v3_momentum'
         self.current_target_idx = self._pick_starting_target_idx()
 
     def load_generated_board(self, board_data):
@@ -93,6 +128,8 @@ class GameEngine:
         self.skipped_targets.clear()
         self.steps = 0
         self.move_history = []
+        self.last_move_changed_colors = []
+        self.last_move_animation_steps = []
         self.robots = board_data['robot_positions'].copy()
         self.start_robots = self.robots.copy()
         self.difficulty_mode = board_data.get('difficulty', 'normal')
@@ -126,7 +163,8 @@ class GameEngine:
             solver = RicochetSolver(
                 self.board,
                 grid_size=self.grid_size,
-                diagonal_walls=self._normalized_diagonal_walls()
+                diagonal_walls=self._normalized_diagonal_walls(),
+                movement_mode=self._solver_movement_mode(),
             )
             steps, _ = solver.solve(
                 self.robots.copy(),
@@ -167,6 +205,9 @@ class GameEngine:
         if not candidates:
             return self.current_target_idx
 
+        if self.difficulty_mode == 'v3_momentum':
+            return candidates[0]
+
         needs_full_solve = []
         within_three_steps = []
         unknown = []
@@ -195,8 +236,25 @@ class GameEngine:
 
         return self.current_target_idx
 
+    def _solver_movement_mode(self):
+        return 'momentum' if self.difficulty_mode == 'v3_momentum' else 'classic'
+
     def move_robot(self, color, direction):
         if color not in self.robots: return False
+
+        if self.difficulty_mode == 'v3_momentum':
+            result = resolve_momentum_move(self.board, self.robots, color, direction)
+            if not result.moved:
+                self.last_move_changed_colors = []
+                self.last_move_animation_steps = []
+                return False
+
+            self.move_history.append({'robots': self.robots.copy()})
+            self.robots = result.robots
+            self.last_move_changed_colors = result.changed_colors
+            self.last_move_animation_steps = result.animation_steps
+            self.steps += 1
+            return True
         
         start_r, start_c = self.robots[color]
         curr_r, curr_c = start_r, start_c
@@ -246,15 +304,25 @@ class GameEngine:
             # Valid move
             self.move_history.append((color, start_r, start_c))
             self.robots[color] = (curr_r, curr_c)
+            self.last_move_changed_colors = [color]
+            self.last_move_animation_steps = [{'color': color, 'to': (curr_r, curr_c)}]
             self.steps += 1
             return True
         
+        self.last_move_changed_colors = []
+        self.last_move_animation_steps = []
         return False
 
     def undo(self):
         if not self.move_history: return False
-        color, old_r, old_c = self.move_history.pop()
-        self.robots[color] = (old_r, old_c)
+        previous = self.move_history.pop()
+        if isinstance(previous, dict) and 'robots' in previous:
+            self.robots = {k: tuple(v) for k, v in previous['robots'].items()}
+        else:
+            color, old_r, old_c = previous
+            self.robots[color] = (old_r, old_c)
+        self.last_move_changed_colors = []
+        self.last_move_animation_steps = []
         self.steps -= 1
         return True
 
@@ -309,6 +377,8 @@ class GameEngine:
         self.robots = self.start_robots.copy()
         self.steps = 0
         self.move_history = []
+        self.last_move_changed_colors = []
+        self.last_move_animation_steps = []
         return True
 
     def _serialize_current_state(self):

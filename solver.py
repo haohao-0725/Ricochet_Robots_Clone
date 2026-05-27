@@ -1,11 +1,14 @@
 from collections import deque
 
+from momentum_rules import resolve_momentum_move
+
 
 class RicochetSolver:
-    def __init__(self, board, grid_size=16, diagonal_walls=None):
+    def __init__(self, board, grid_size=16, diagonal_walls=None, movement_mode='classic'):
         self.board = board
         self.grid_size = grid_size
         self.diagonal_walls = diagonal_walls or {}
+        self.movement_mode = movement_mode
         self._color_empty_adj = {}
         self._color_rev_adj = {}
         self.empty_adj = {}
@@ -152,16 +155,22 @@ class RicochetSolver:
             for color in colors:
                 r, c = state_by_color[color]
                 robot_index = colors.index(color)
-                occupied = occupied_all - {(r, c)}
 
                 for direction in ['top', 'bottom', 'left', 'right']:
-                    nr, nc = self.get_slide_endpoint(r, c, direction, occupied, color=color)
-                    if (nr, nc) == (r, c):
-                        continue
+                    if self.movement_mode == 'momentum':
+                        result = resolve_momentum_move(self.board, state_by_color, color, direction)
+                        if not result.moved:
+                            continue
+                        next_state = tuple(result.robots[c] for c in colors)
+                    else:
+                        occupied = occupied_all - {(r, c)}
+                        nr, nc = self.get_slide_endpoint(r, c, direction, occupied, color=color)
+                        if (nr, nc) == (r, c):
+                            continue
 
-                    next_state = list(state)
-                    next_state[robot_index] = (nr, nc)
-                    next_state = tuple(next_state)
+                        next_state = list(state)
+                        next_state[robot_index] = (nr, nc)
+                        next_state = tuple(next_state)
 
                     if next_state in visited:
                         continue
