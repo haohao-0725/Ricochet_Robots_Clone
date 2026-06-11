@@ -29,9 +29,11 @@ GitHub Release 頁面底部會自動出現 `Source code (zip)` 和 `Source code 
 ├── board_generator.py                  # Normal / Hard / Expert 地圖生成
 ├── solver.py                           # BFS 最短解答器
 ├── ricochet_robots_board_data.py       # 固定棋盤資料與棋盤矩陣建構
+├── momentum_rules.py                   # Momentum (v3) 模式規則與動量傳遞
 ├── assets/                             # 正式執行與打包會使用的資源
-├── scripts/                            # 輔助腳本
-├── docs/                               # 系統說明文件
+├── scripts/                            # 輔助腳本（super expert 預生成、牆面編輯器）
+├── tests/                              # 基本 smoke test
+├── docs/                               # 系統說明文件（含 v3 動量設計）
 ├── packaging/                          # 歷史或備用打包設定
 ├── RicochetRobots.spec                 # PyInstaller 打包設定
 └── AGENT.md                            # 給後續 agent / 維護者的工作規則
@@ -45,9 +47,18 @@ GitHub Release 頁面底部會自動出現 `Source code (zip)` 和 `Source code 
 
 這些資料夾已被 `.gitignore` 忽略，不會提交到 GitHub。
 
+## 初次設定
+
+此專案使用 **Python 3.10**（本機驗證版本 3.10.8）與本機 venv。全新 clone 後請先建立環境：
+
+```powershell
+python -m venv venv
+.\venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
 ## 開發執行
 
-此專案使用本機 venv。從 repo 根目錄執行：
+從 repo 根目錄執行：
 
 ```powershell
 .\venv\Scripts\python.exe main_gui.py
@@ -65,7 +76,7 @@ $env:PYTHONIOENCODING = "utf-8"
 語法檢查：
 
 ```powershell
-.\venv\Scripts\python.exe -m py_compile main_gui.py game_engine.py solver.py board_generator.py ricochet_robots_board_data.py scripts\precalculate_super_expert.py
+.\venv\Scripts\python.exe -m py_compile main_gui.py game_engine.py solver.py board_generator.py momentum_rules.py ricochet_robots_board_data.py scripts\precalculate_super_expert.py
 ```
 
 GUI 建構 smoke test：
@@ -122,6 +133,14 @@ dist/RicochetRobots.exe
 5. 在 GitHub Releases 上傳 `RicochetRobots.exe`。
 6. Release 說明中提醒玩家下載 exe，不要下載自動產生的 source code 壓縮檔。
 
+## 參與開發
+
+多人協作的分支、PR 與送出前檢查規則放在 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
 ## 維護說明
 
 更細的 agent 工作規則、測試建議、Git 大檔案規則與專案慣例放在 [AGENT.md](AGENT.md)。
+
+## 授權
+
+原創程式碼以 MIT 授權，詳見 [LICENSE](LICENSE)。「Ricochet Robots」名稱為其原始權利人所有；本專案為非商業學習用 fan/clone 專案。

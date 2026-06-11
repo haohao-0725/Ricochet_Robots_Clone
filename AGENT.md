@@ -19,7 +19,14 @@
 
 ### Python 環境
 
-此專案使用本機 venv。從 repo 根目錄執行 Python 相關工作時，優先使用：
+此專案使用 **Python 3.10**（本機驗證版本 3.10.8）與本機 venv。全新 clone 後需先建立環境：
+
+```powershell
+python -m venv venv
+.\venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+從 repo 根目錄執行 Python 相關工作時，優先使用：
 
 ```powershell
 .\venv\Scripts\python.exe
@@ -34,7 +41,7 @@
 語法檢查：
 
 ```powershell
-.\venv\Scripts\python.exe -m py_compile main_gui.py game_engine.py solver.py board_generator.py ricochet_robots_board_data.py scripts\precalculate_super_expert.py
+.\venv\Scripts\python.exe -m py_compile main_gui.py game_engine.py solver.py board_generator.py momentum_rules.py ricochet_robots_board_data.py scripts\precalculate_super_expert.py
 ```
 
 打包：
@@ -67,10 +74,12 @@ $env:PYTHONIOENCODING = "utf-8"
 - `board_generator.py`：Normal / Hard / Expert 地圖生成
 - `solver.py`：BFS 最短解答器
 - `ricochet_robots_board_data.py`：固定棋盤資料與棋盤矩陣建構
+- `momentum_rules.py`：Momentum (v3) 模式規則與動量傳遞邏輯，設計見 `docs/v3_momentum_design.md`
 - `assets/`：正式執行與打包會使用的資源，會被 PyInstaller 打進 exe
-- `scripts/`：輔助腳本，例如 Super Expert 預生成地圖
-- `docs/`：設計或系統說明文件
-- `packaging/`：非主要 PyInstaller spec 或歷史打包設定
+- `scripts/`：輔助腳本，例如 Super Expert 預生成地圖（`precalculate_super_expert.py`）與牆面編輯器（`wall_editor.py`）
+- `tests/`：基本 smoke test（GUI 建構、地圖生成、momentum 規則）
+- `docs/`：設計或系統說明文件（含 `v3_momentum_design.md`）
+- `packaging/`：歷史或備用打包設定。`packaging/legacy/RicochetRobots_UI_Test.spec` 為早期 UI 測試用的舊 spec，僅作歷史保留，正式打包請用根目錄的 `RicochetRobots.spec`
 - `dev_assets/`：本機開發素材與舊素材，已被 `.gitignore` 忽略
 - `release_assets/`：本機保存的 exe / zip 發行檔，已被 `.gitignore` 忽略
 

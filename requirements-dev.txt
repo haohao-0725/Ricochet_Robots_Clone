@@ -1,0 +1,9 @@
+# 開發/測試用額外套件（非執行或打包必需）
+# 安裝：.\venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+#
+# tests/ 下的 smoke test 不裝 pytest 也能直接執行：
+#   $env:QT_QPA_PLATFORM='offscreen'; .\venv\Scripts\python.exe tests\test_smoke.py
+# 裝了 pytest 後可改用：
+#   $env:QT_QPA_PLATFORM='offscreen'; .\venv\Scripts\python.exe -m pytest tests
+
+pytest>=8.0

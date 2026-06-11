@@ -1,0 +1,13 @@
+# Ricochet Robots Python Edition 相依套件
+# 安裝：.\venv\Scripts\python.exe -m pip install -r requirements.txt
+#
+# 開發使用 Python 3.10（本機驗證版本為 3.10.8）。
+
+# --- 執行需要 ---
+PyQt6==6.11.0
+
+# --- 打包 exe 需要（一般玩遊戲/開發不需要）---
+pyinstaller==6.19.0
+
+# 註：numpy / pillow 目前程式碼未直接 import，故不列入。
+# 若未來 solver 或資源處理需要再加入並標明用途。
