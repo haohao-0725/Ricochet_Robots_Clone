@@ -4,6 +4,13 @@ import os
 from ricochet_robots_board_data import build_board_matrix, TARGETS, GRID_SIZE
 from momentum_rules import resolve_momentum_move
 
+# Bump whenever the generated-board format or the certified map set changes in a
+# way that makes previously saved boards stale (e.g. the old 32x32 Super Expert
+# layout). Saved slots stamped with an older value are treated as incompatible
+# and regenerated instead of being silently restored.
+CURRENT_BOARD_SCHEMA_VERSION = 3
+
+
 class GameEngine:
     def __init__(self):
         # Game State
@@ -30,6 +37,9 @@ class GameEngine:
         self.win_count = 0
         self.difficulty_mode = 'easy'
         self.diagonal_walls = {}
+        self.validated_target_order = []
+        self.validation_rounds = []
+        self.generated_quality = {}
         self.saved_slots = {}
         self.last_move_changed_colors = []
         self.last_move_animation_steps = []
@@ -45,7 +55,15 @@ class GameEngine:
                 self.win_count = 0
                 self.completed_targets.clear()
                 self.skipped_targets.clear()
-                random.shuffle(self.targets)
+                if self.validated_target_order:
+                    by_name = dict(self.targets)
+                    self.targets = [
+                        (name, by_name[name])
+                        for name in self.validated_target_order
+                        if name in by_name
+                    ]
+                else:
+                    random.shuffle(self.targets)
                 self.current_target_idx = 0
             self.test_mode = False
             self.backup_state = None
@@ -83,6 +101,9 @@ class GameEngine:
         self.start_robots = self.robots.copy()
         self.difficulty_mode = 'easy'
         self.diagonal_walls = {}
+        self.validated_target_order = []
+        self.validation_rounds = []
+        self.generated_quality = {}
         self.current_target_idx = self._pick_starting_target_idx()
 
     def reset_to_v3_momentum_board(self, full_reset=True):
@@ -90,6 +111,9 @@ class GameEngine:
         self.grid_size = 16
         self.board = build_board_matrix()
         self.diagonal_walls = {}
+        self.validated_target_order = []
+        self.validation_rounds = []
+        self.generated_quality = {}
         self.targets = list(TARGETS.items())
         if full_reset:
             self.win_count = 0
@@ -121,8 +145,24 @@ class GameEngine:
         )
         self.diagonal_walls = board_data.get('diagonal_walls', {})
 
-        self.targets = list(board_data['targets'].items())
-        random.shuffle(self.targets)
+        target_items = list(board_data['targets'].items())
+        self.validated_target_order = list(board_data.get('validated_target_order', []))
+        self.validation_rounds = list(board_data.get('validation_rounds', []))
+        self.generated_quality = dict(board_data.get('quality', {}))
+        if self.validated_target_order:
+            by_name = dict(target_items)
+            ordered = [
+                (name, by_name[name])
+                for name in self.validated_target_order
+                if name in by_name
+            ]
+            used_names = {name for name, _ in ordered}
+            remaining = [item for item in target_items if item[0] not in used_names]
+            random.shuffle(remaining)
+            self.targets = ordered + remaining
+        else:
+            self.targets = target_items
+            random.shuffle(self.targets)
         self.current_target_idx = 0
         self.completed_targets.clear()
         self.skipped_targets.clear()
@@ -133,7 +173,7 @@ class GameEngine:
         self.robots = board_data['robot_positions'].copy()
         self.start_robots = self.robots.copy()
         self.difficulty_mode = board_data.get('difficulty', 'normal')
-        self.current_target_idx = self._pick_starting_target_idx()
+        self.current_target_idx = 0 if self.validated_target_order else self._pick_starting_target_idx()
 
     def get_current_target(self):
         return self.targets[self.current_target_idx]
@@ -157,6 +197,15 @@ class GameEngine:
         return normalized
 
     def _target_solve_steps(self, target_name, target_pos, max_depth=22, max_states=220000):
+        steps, _ = self._target_solve_metrics(
+            target_name,
+            target_pos,
+            max_depth=max_depth,
+            max_states=max_states,
+        )
+        return steps
+
+    def _target_solve_metrics(self, target_name, target_pos, max_depth=22, max_states=220000):
         try:
             from solver import RicochetSolver
             target_color = target_name.split('_')[0]
@@ -166,16 +215,17 @@ class GameEngine:
                 diagonal_walls=self._normalized_diagonal_walls(),
                 movement_mode=self._solver_movement_mode(),
             )
-            steps, _ = solver.solve(
+            steps, path = solver.solve(
                 self.robots.copy(),
                 target_color,
                 target_pos,
                 max_depth=max_depth,
                 max_states=max_states
             )
-            return steps
+            moved_count = len({color for color, _ in path}) if steps >= 0 else 0
+            return steps, moved_count
         except Exception:
-            return -1
+            return -1, 0
 
     def _target_is_solvable(self, target_name, target_pos):
         return self._target_solve_steps(target_name, target_pos) >= 0
@@ -184,7 +234,55 @@ class GameEngine:
         return self._pick_target_idx(exclude_current=False)
 
     def _pick_next_target_idx(self):
+        preferred_idx = self._pick_validated_target_idx()
+        if preferred_idx is not None:
+            return preferred_idx
         return self._pick_target_idx(exclude_current=True)
+
+    def _pick_validated_target_idx(self):
+        best_fallback = None
+        best_fallback_key = None
+        required_steps = self.generated_quality.get('required_min_steps', 0)
+        required_max_steps = self.generated_quality.get('required_max_steps')
+        required_robots = self.generated_quality.get('required_min_moved_robots', 0)
+        for order_index, target_name in enumerate(self.validated_target_order):
+            if self.is_target_retired(target_name):
+                continue
+            for idx, (name, pos) in enumerate(self.targets):
+                if name != target_name or idx == self.current_target_idx:
+                    continue
+                if order_index > 0 and order_index <= len(self.validation_rounds):
+                    expected_previous_end = self.validation_rounds[
+                        order_index - 1
+                    ].get('end_robots', {})
+                    normalized_previous_end = {
+                        color: tuple(position)
+                        for color, position in expected_previous_end.items()
+                    }
+                    if normalized_previous_end == self.robots:
+                        return idx
+                steps, moved_count = self._target_solve_metrics(name, pos)
+                if steps < 0:
+                    continue
+                if (
+                    steps >= required_steps
+                    and (required_max_steps is None or steps <= required_max_steps)
+                    and moved_count >= required_robots
+                ):
+                    return idx
+                # Keep the hardest still-solvable target as a fallback so a player
+                # who diverges from the certified route never collapses the
+                # difficulty to a trivial 1-2 step target. Prefer meeting the
+                # robot floor first, then maximise steps, then moved robots.
+                fallback_key = (
+                    moved_count >= required_robots,
+                    steps,
+                    moved_count,
+                )
+                if best_fallback_key is None or fallback_key > best_fallback_key:
+                    best_fallback_key = fallback_key
+                    best_fallback = idx
+        return best_fallback
 
     def _ordered_uncompleted_target_indices(self, exclude_current=False):
         candidates = []
@@ -204,6 +302,9 @@ class GameEngine:
         candidates = self._ordered_uncompleted_target_indices(exclude_current=exclude_current)
         if not candidates:
             return self.current_target_idx
+
+        if self.difficulty_mode == 'easy':
+            return self._pick_easy_progression_target(candidates)
 
         needs_full_solve = []
         within_three_steps = []
@@ -232,6 +333,35 @@ class GameEngine:
                 return group[0]
 
         return self.current_target_idx
+
+    def _pick_easy_progression_target(self, candidates):
+        completed = len(self.completed_targets)
+        if completed < 5:
+            preferred_min, preferred_max = 2, 5
+        elif completed < 11:
+            preferred_min, preferred_max = 3, 7
+        else:
+            preferred_min, preferred_max = 4, 10
+
+        scored = []
+        fallback = []
+        for idx in candidates:
+            name, pos = self.targets[idx]
+            steps = self._target_solve_steps(
+                name,
+                pos,
+                max_depth=preferred_max,
+                max_states=100000,
+            )
+            if preferred_min <= steps <= preferred_max:
+                scored.append((abs(steps - preferred_max), steps, idx))
+            elif steps >= 0:
+                fallback.append((abs(steps - preferred_max), steps, idx))
+        if scored:
+            return min(scored)[2]
+        if fallback:
+            return min(fallback)[2]
+        return candidates[0]
 
     def _solver_movement_mode(self):
         return 'momentum' if self.difficulty_mode == 'v3_momentum' else 'classic'
@@ -347,7 +477,13 @@ class GameEngine:
             self.win_count += 1
             return True # 代表所有目標完成，破關
         
-        next_idx = self._pick_next_target_idx() if not mark_completed else self._pick_target_idx(exclude_current=False)
+        next_idx = self._pick_validated_target_idx()
+        if next_idx is None:
+            next_idx = (
+                self._pick_next_target_idx()
+                if not mark_completed
+                else self._pick_target_idx(exclude_current=False)
+            )
         if next_idx is None or len(self.completed_targets) >= len(self.targets):
             self.win_count += 1
             return True
@@ -402,6 +538,7 @@ class GameEngine:
                     if c < self.grid_size - 1 and self.board[r][c]['right']:
                         v_walls.append([r, c])
             state['generated_board'] = {
+                'board_schema_version': CURRENT_BOARD_SCHEMA_VERSION,
                 'h_walls': h_walls,
                 'v_walls': v_walls,
                 'diagonal_walls': {str(k): v for k, v in self.diagonal_walls.items()},
@@ -409,6 +546,9 @@ class GameEngine:
                 'robot_positions': self.start_robots,
                 'grid_size': self.grid_size,
                 'difficulty': self.difficulty_mode,
+                'validated_target_order': self.validated_target_order,
+                'validation_rounds': self.validation_rounds,
+                'quality': self.generated_quality,
             }
         return state
 
@@ -494,6 +634,38 @@ class GameEngine:
         try:
             document = self._read_save_document(filepath)
             return mode in document.get('slots', {})
+        except Exception:
+            return False
+
+    def active_saved_difficulty(self, filepath):
+        try:
+            document = self._read_save_document(filepath)
+            return document.get('active_difficulty')
+        except Exception:
+            return None
+
+    def is_saved_slot_compatible(self, filepath, mode):
+        """Return True only if the saved slot can still be restored as-is.
+
+        Easy always uses the static board, so its slot is always compatible.
+        Generated modes must carry the current board schema version and a
+        16x16 grid; older saves (e.g. the legacy 32x32 Super Expert board) are
+        rejected so the caller regenerates a fresh, certified board instead of
+        restoring stale content.
+        """
+        try:
+            document = self._read_save_document(filepath)
+            slot = document.get('slots', {}).get(mode)
+            if slot is None:
+                return False
+            if mode == 'easy':
+                return True
+            generated = slot.get('generated_board')
+            if not generated:
+                return False
+            if generated.get('grid_size', 16) != 16:
+                return False
+            return generated.get('board_schema_version', 0) >= CURRENT_BOARD_SCHEMA_VERSION
         except Exception:
             return False
 

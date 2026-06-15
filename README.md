@@ -13,11 +13,12 @@ GitHub Release 頁面底部會自動出現 `Source code (zip)` 和 `Source code 
 ## 遊戲功能
 
 - Easy：固定 16x16 經典棋盤，4 台機器人。
-- Normal：固定棋盤加少量變化牆，生成時會驗證多個目標可解。
-- Hard：更多變化牆，加入 Silver robot。
-- Expert：加入彩色斜牆與 Silver robot，生成時驗證至少 8 個可解目標。
-- Super Expert：讀取 `assets/super_expert_maps.json` 的 32x32 預生成地圖。
-- 支援存檔、讀檔、重開目前難度、undo、破關次數統計。
+- Normal / Hard / Expert / Momentum / Super Expert：皆改用 `assets/map_catalog_v2.json`
+  的離線認證地圖庫；切換模式時抽選已通過 exact A* / BFS 驗證的盤面並套用等價幾何變換，
+  不再即時進行昂貴搜尋。各模式的 17 回合難度合約見 `docs/map_catalog_v2.md`。
+- Momentum：加入動量推撞規則，最短解多數回合需觸發推撞。
+- Super Expert：16x16 密集拓樸（由最難的 Hard 盤面套用幾何變換），較嚴格的平均複雜度門檻。
+- 支援存檔、讀檔、重開目前難度、undo、破關次數統計（舊版不相容存檔會自動重新生成最新盤面）。
 - 內建 BFS 最短解答器，可在提示面板計算最佳解。
 
 ## 專案結構

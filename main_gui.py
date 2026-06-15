@@ -122,6 +122,8 @@ class TargetPickerThread(QThread):
         diagonal_walls=None,
         movement_mode='classic',
         exclude_current=False,
+        validated_target_order=None,
+        quality=None,
     ):
         super().__init__()
         self.task_id = task_id
@@ -134,6 +136,8 @@ class TargetPickerThread(QThread):
         self.diagonal_walls = diagonal_walls or {}
         self.movement_mode = movement_mode
         self.exclude_current = exclude_current
+        self.validated_target_order = list(validated_target_order or [])
+        self.quality = dict(quality or {})
         self._cancelled = False
 
     def cancel(self):
@@ -147,6 +151,23 @@ class TargetPickerThread(QThread):
         self.finished_signal.emit(self.task_id, next_idx)
 
     def ordered_uncompleted_target_indices(self):
+        if self.validated_target_order:
+            indices_by_name = {
+                name: index
+                for index, (name, _) in enumerate(self.targets)
+            }
+            ordered = [
+                indices_by_name[name]
+                for name in self.validated_target_order
+                if name in indices_by_name
+                and name not in self.completed_targets
+                and (
+                    not self.exclude_current
+                    or indices_by_name[name] != self.current_target_idx
+                )
+            ]
+            if ordered:
+                return ordered
         candidates = []
         offsets = range(1, len(self.targets)) if self.exclude_current else range(len(self.targets))
         for offset in offsets:
@@ -160,9 +181,9 @@ class TargetPickerThread(QThread):
                 candidates.append(self.current_target_idx)
         return candidates
 
-    def target_solve_steps(self, target_name, target_pos, max_depth=22, max_states=220000):
+    def target_solve_metrics(self, target_name, target_pos, max_depth=22, max_states=220000):
         if self.is_cancelled():
-            return -2
+            return -2, 0, {}
         try:
             target_color = target_name.split('_')[0]
             diag = {tuple(k) if isinstance(k, list) else k: v for k, v in self.diagonal_walls.items()} if self.diagonal_walls else {}
@@ -172,7 +193,7 @@ class TargetPickerThread(QThread):
                 diagonal_walls=diag,
                 movement_mode=self.movement_mode,
             )
-            steps, _ = solver.solve(
+            steps, path = solver.solve(
                 self.robots_dict,
                 target_color,
                 target_pos,
@@ -180,14 +201,52 @@ class TargetPickerThread(QThread):
                 max_states=max_states,
                 cancel_callback=self.is_cancelled,
             )
-            return steps
+            if steps < 0:
+                return steps, 0, {}
+            features = solver.analyze_path(
+                self.robots_dict,
+                path,
+                target_color=target_color,
+            )
+            return steps, features['moved_robot_count'], features
         except Exception:
-            return -1
+            return -1, 0, {}
 
     def pick_target_idx(self):
         candidates = self.ordered_uncompleted_target_indices()
         if not candidates:
             return self.current_target_idx
+
+        if self.validated_target_order:
+            required_min = self.quality.get('required_min_steps', 0)
+            required_max = self.quality.get('required_max_steps')
+            required_robots = self.quality.get('required_min_moved_robots', 0)
+            contract_matches = []
+            mechanic_matches = []
+            solvable = []
+            for idx in candidates:
+                name, pos = self.targets[idx]
+                steps, moved_count, features = self.target_solve_metrics(name, pos)
+                if steps == -2:
+                    return candidates[0]
+                if steps < 0:
+                    continue
+                solvable.append(idx)
+                if (
+                    steps >= required_min
+                    and (required_max is None or steps <= required_max)
+                    and moved_count >= required_robots
+                ):
+                    contract_matches.append(idx)
+                    if (
+                        self.movement_mode != 'momentum'
+                        or features.get('momentum_collisions', 0) > 0
+                    ):
+                        mechanic_matches.append(idx)
+            for group in (mechanic_matches, contract_matches, solvable):
+                if group:
+                    return group[0]
+            return candidates[0]
 
         needs_full_solve = []
         within_three_steps = []
@@ -195,7 +254,12 @@ class TargetPickerThread(QThread):
 
         for idx in candidates:
             name, pos = self.targets[idx]
-            steps = self.target_solve_steps(name, pos, max_depth=3, max_states=50000)
+            steps, _, _ = self.target_solve_metrics(
+                name,
+                pos,
+                max_depth=3,
+                max_states=50000,
+            )
             if 0 <= steps <= 3:
                 within_three_steps.append(idx)
             else:
@@ -205,7 +269,7 @@ class TargetPickerThread(QThread):
             if self.is_cancelled():
                 return candidates[0]
             name, pos = self.targets[idx]
-            steps = self.target_solve_steps(name, pos)
+            steps, _, _ = self.target_solve_metrics(name, pos)
             if steps > 3:
                 return idx
             if 0 <= steps <= 3:
@@ -1134,12 +1198,16 @@ class MainWindow(QMainWindow):
         QMessageBox.information(
             self,
             "模式說明",
-            "Easy：固定棋盤，規則最單純，適合先熟悉機器人的滑行方式與目標順序。\n\n"
-            "Normal：棋盤會有一些變化，路線不一定直覺，適合想要多一點挑戰的玩家。\n\n"
-            "Hard：加入 Silver 機器人與更複雜的牆面配置，常常需要先移動其他機器人來鋪路。\n\n"
-            "Expert：會出現彩色斜牆。不同顏色的機器人面對斜牆時反應不同，解題時要多留意反射與穿越。\n\n"
-            "V3 Momentum：動量原型模式。機器人滑行後撞到另一台機器人時，會把已移動格數轉成同方向推動距離；撞牆會吸收剩餘動量。\n\n"
-            "Super Expert：大型 32x32 高難度地圖，思考時間可能更長。生成或載入後建議先存檔。"
+            "Easy：固定原始棋盤，不生成或修改地圖；前段會優先安排較短目標，再逐步提高解題長度。\n\n"
+            "Normal：使用離線認證的平衡拓樸；完整 17 題皆經連續驗證，"
+            "目前最短解為 6 到 9 步，且每題至少移動 2 台不同機器人。\n\n"
+            "Hard：使用 4 種拓樸家族與 12 張認證基底；完整 17 題為 9 到 13 步，"
+            "每題至少移動 3 台不同機器人，相鄰回合最多下降 3 步。\n\n"
+            "Expert：完整 17 題經 exact BFS 驗證，彩色斜牆配置會讓 12 題的保存最短解實際觸發反射。\n\n"
+            "Momentum：完整 17 題經動量 BFS 驗證，其中 15 題的最短解會觸發推撞或連鎖；"
+            "其餘 2 題保留為收尾目標。\n\n"
+            "Super Expert：改為 16x16 密集認證拓樸，不再只依靠 32x32 尺寸；"
+            "完整 17 題維持 9 到 13 步、至少 3 台機器人與較高支援步數。"
         )
 
     # ====== Audio Handlers ======
@@ -1659,6 +1727,8 @@ class MainWindow(QMainWindow):
             diagonal_walls=self.engine.diagonal_walls,
             movement_mode=self.engine._solver_movement_mode(),
             exclude_current=exclude_current,
+            validated_target_order=self.engine.validated_target_order,
+            quality=self.engine.generated_quality,
         )
         thread.defer_apply = defer_apply
         thread.mark_completed = mark_completed
@@ -1780,6 +1850,19 @@ class MainWindow(QMainWindow):
 
     def load_game(self):
         self._migrate_legacy_save_if_needed()
+        active_mode = self.engine.active_saved_difficulty(self.get_save_path())
+        if (
+            active_mode is not None
+            and not self.engine.is_saved_slot_compatible(self.get_save_path(), active_mode)
+        ):
+            QMessageBox.information(
+                self,
+                "提示",
+                f"{active_mode.replace('_', ' ').title()} 的存檔來自舊版本，已為你重新生成最新地圖。",
+            )
+            self.engine.difficulty_mode = active_mode
+            self.start_new_difficulty_board(active_mode)
+            return
         if self.engine.load_state(self.get_save_path()):
             self.refresh_board_after_state_change(clear_solver=True)
             QMessageBox.information(self, "提示", "讀取存檔成功！")
@@ -1806,7 +1889,10 @@ class MainWindow(QMainWindow):
 
         self.save_game_silent()
 
-        if self.engine.has_saved_slot(self.get_save_path(), mode):
+        if (
+            self.engine.has_saved_slot(self.get_save_path(), mode)
+            and self.engine.is_saved_slot_compatible(self.get_save_path(), mode)
+        ):
             if self.engine.load_state(self.get_save_path(), mode=mode):
                 self.refresh_board_after_state_change(clear_solver=True)
                 self.save_game_silent()
@@ -1820,11 +1906,9 @@ class MainWindow(QMainWindow):
             self.refresh_board_after_state_change(clear_solver=True)
             self.save_game_silent()
         elif mode == 'v3_momentum':
-            self.engine.reset_to_v3_momentum_board()
-            self.refresh_board_after_state_change(clear_solver=True)
-            self.save_game_silent()
+            self.start_board_generation(mode)
         elif mode == 'super_expert':
-            self.start_super_expert()
+            self.start_board_generation(mode)
         else:
             self.start_board_generation(mode)
 
@@ -1876,66 +1960,7 @@ class MainWindow(QMainWindow):
         self.pending_generation_mode = None
 
     def start_super_expert(self):
-        self.pending_generation_previous_state = self.engine._serialize_current_state()
-        self.set_buttons_enabled(False)
-        self.overlay_widget.resize(self.board_view.size())
-        self.overlay_label.setText("Super Expert 地圖載入中...")
-        self.cancel_generation_btn.hide()
-        self.overlay_widget.show()
-        QApplication.processEvents()
-
-        maps_path = resource_path('assets/super_expert_maps.json')
-        if not os.path.exists(maps_path):
-            self.overlay_widget.hide()
-            self.cancel_generation_btn.show()
-            self.set_buttons_enabled(True)
-            QMessageBox.warning(self, 'Super Expert', '找不到預生成地圖資料 assets/super_expert_maps.json。')
-            self._restore_pending_generation_state()
-            self.refresh_board_after_state_change(clear_solver=True)
-            return
-
-        import json
-        with open(maps_path, 'r', encoding='utf-8') as f:
-            maps_list = json.load(f)
-        if not maps_list:
-            self.overlay_widget.hide()
-            self.cancel_generation_btn.show()
-            self.set_buttons_enabled(True)
-            QMessageBox.warning(self, 'Super Expert', 'Super Expert 地圖資料為空。')
-            self._restore_pending_generation_state()
-            self.refresh_board_after_state_change(clear_solver=True)
-            return
-
-        chosen = random.choice(maps_list)
-        if 'diagonal_walls' in chosen:
-            converted = {}
-            for k, v in chosen['diagonal_walls'].items():
-                if isinstance(k, list):
-                    converted[tuple(k)] = v
-                elif isinstance(k, str):
-                    import ast
-                    try:
-                        converted[ast.literal_eval(k)] = v
-                    except Exception:
-                        converted[k] = v
-                else:
-                    converted[k] = v
-            chosen['diagonal_walls'] = converted
-        if 'targets' in chosen:
-            chosen['targets'] = {name: tuple(pos) for name, pos in chosen['targets'].items()}
-        if 'robot_positions' in chosen:
-            chosen['robot_positions'] = {col: tuple(pos) for col, pos in chosen['robot_positions'].items()}
-        chosen['difficulty'] = 'super_expert'
-
-        self.engine.load_generated_board(chosen)
-        self.pending_generation_previous_state = None
-        self.pending_generation_mode = None
-        self.overlay_widget.hide()
-        self.cancel_generation_btn.show()
-        self.set_buttons_enabled(True)
-        self.refresh_board_after_state_change(clear_solver=True)
-        self.save_game_silent()
-        self.show_high_difficulty_save_reminder()
+        self.start_board_generation('super_expert')
 
     def start_board_generation(self, mode):
         self.pending_generation_previous_state = self.engine._serialize_current_state()
