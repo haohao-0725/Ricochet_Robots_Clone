@@ -14,6 +14,7 @@ if ROOT_DIR not in sys.path:
 from board_generator import BoardGenerator
 from catalog_validation import topology_signature, validate_catalog_entry
 from hard_board_catalog import HARD_BOARD_BASES
+from session_planner import plan_hard_session, plan_normal_session
 from map_catalog import (
     decode_map_entry,
     empty_catalog,
@@ -465,40 +466,43 @@ def ensure_normal_catalog(catalog, target_normal, seed, path):
         or topology_signature(item)
         for item in existing_normal
     }
-    attempts = 0
-    available_families = [
-        family for family in FAMILIES
-        if safe_structures.get(family)
-    ]
-    while len(existing_normal) < target_normal and attempts < 5000:
-        family = available_families[attempts % len(available_families)]
-        rng = random.Random(seed + attempts)
-        candidate = mutate_from_safe_structures(
-            normal_seed,
-            family,
-            rng,
-            len(existing_normal),
-            safe_structures,
-        )
-        attempts += 1
-        if candidate is None:
-            continue
-        candidate['mode'] = 'normal'
-        candidate['id'] = f'normal-certified-{len(existing_normal):02d}'
-        signature = topology_signature(candidate)
-        if signature in seen_signatures or not structurally_acceptable(candidate):
-            continue
+    seen_trajectories = {
+        item.get('features', {}).get('trajectory_signature')
+        for item in existing_normal
+    }
+    # Endpoint-targeting inverse design (same concept as Hard): each Normal map
+    # gets a freshly designed in-band chained session => distinct topology AND
+    # trajectory, no shared replayed solution.
+    boards = endpoint_boards(normal_seed, safe_structures, target_normal, seed, 'normal')
+    for idx, (family, h_walls, v_walls) in enumerate(boards):
+        if len(existing_normal) >= target_normal:
+            break
+        map_id = f'normal-certified-{len(existing_normal):02d}'
         try:
-            candidate = validate_catalog_entry(candidate, exact=True)
-        except ValueError:
+            candidate = endpoint_entry(h_walls, v_walls, family, map_id,
+                                       seed + idx, 'normal', plan_normal_session)
+        except ValueError as error:
+            print(f'rejected normal board {idx} ({family}): {error}', flush=True)
+            continue
+        if candidate is None:
+            print(f'no strict session for normal board {idx} ({family})', flush=True)
+            continue
+        signature = candidate['features']['topology_signature']
+        trajectory = candidate['features']['trajectory_signature']
+        if signature in seen_signatures or trajectory in seen_trajectories:
             continue
         existing_normal.append(candidate)
         seen_signatures.add(signature)
+        seen_trajectories.add(trajectory)
         catalog['maps'].append(encode_map_entry(candidate))
         save_catalog(catalog, path)
         print(
             f'accepted {candidate["id"]}: {family}, '
-            f'walls={candidate["features"]["wall_count"]}',
+            f'walls={candidate["features"]["wall_count"]}, '
+            f'steps {candidate["features"]["round_min_steps"]}-'
+            f'{candidate["features"]["round_max_steps"]}, '
+            f'avg {candidate["features"]["round_average_steps"]}, '
+            f'traj={trajectory[:8]}',
             flush=True,
         )
 
@@ -791,54 +795,48 @@ def ensure_momentum_catalog(catalog, target_momentum, path):
     ]
     if len(existing) >= target_momentum:
         return
-    normal_entries = [
-        decode_map_entry(item)
-        for item in catalog['maps']
-        if item['mode'] == 'normal'
-    ]
+    # Momentum keeps its own fixed-target Normal base (the layout its planner was
+    # tuned for). It is intentionally decoupled from the endpoint-designed Normal
+    # catalog -- the momentum mechanic needs collisions on a known layout, and
+    # planning momentum on arbitrary designed target cells is unstable.
+    base_seed = symmetric_normal_seed()
+    board = build_board_matrix_from_walls(
+        base_seed['h_walls'],
+        base_seed['v_walls'],
+        grid_size=base_seed['grid_size'],
+    )
     accepted_entry = None
-    for normal_entry in normal_entries:
-        if accepted_entry is not None:
-            break
-        board = build_board_matrix_from_walls(
-            normal_entry['h_walls'],
-            normal_entry['v_walls'],
-            grid_size=normal_entry['grid_size'],
+    # A single greedy session can still craft a weak tail, so scan seeds and
+    # accept the first planned session that passes the full contract (>= 4 steps
+    # every round, smooth <= 3-step drops, >= 15 collision rounds) instead of the
+    # first session that merely reaches 17 rounds.
+    for seed in range(8):
+        rounds = plan_momentum_session(
+            board,
+            dict(base_seed['robot_positions']),
+            base_seed['targets'],
+            base_seed['grid_size'],
+            seed,
         )
-        # A single greedy session can still craft a weak tail, so scan seeds
-        # and accept the first planned session that passes the full contract
-        # (>= 4 steps every round, smooth <= 3-step drops, >= 15 collision
-        # rounds) instead of the first session that merely reaches 17 rounds.
-        for seed in range(8):
-            rounds = plan_momentum_session(
-                board,
-                dict(normal_entry['robot_positions']),
-                normal_entry['targets'],
-                normal_entry['grid_size'],
-                seed,
-            )
-            if not rounds or len(rounds) != 17:
-                continue
-            entry = deepcopy(normal_entry)
-            entry['id'] = f'momentum-certified-{len(existing):02d}'
-            entry['mode'] = 'v3_momentum'
-            entry['family'] = f'momentum_{normal_entry["family"]}'
-            entry['target_order'] = [item['target'] for item in rounds]
-            entry['rounds'] = rounds
-            entry['certification'] = {
-                'method': 'exact_momentum_bfs_planned_tail',
-                'parent': normal_entry['id'],
-            }
-            try:
-                entry = validate_catalog_entry(entry, exact=True)
-            except ValueError as error:
-                print(
-                    f'rejected Momentum {normal_entry["id"]} seed {seed}: {error}',
-                    flush=True,
-                )
-                continue
-            accepted_entry = entry
-            break
+        if not rounds or len(rounds) != 17:
+            continue
+        entry = deepcopy(base_seed)
+        entry['id'] = f'momentum-certified-{len(existing):02d}'
+        entry['mode'] = 'v3_momentum'
+        entry['family'] = f'momentum_{base_seed["family"]}'
+        entry['target_order'] = [item['target'] for item in rounds]
+        entry['rounds'] = rounds
+        entry['certification'] = {
+            'method': 'exact_momentum_bfs_planned_tail',
+            'parent': base_seed['id'],
+        }
+        try:
+            entry = validate_catalog_entry(entry, exact=True)
+        except ValueError as error:
+            print(f'rejected Momentum seed {seed}: {error}', flush=True)
+            continue
+        accepted_entry = entry
+        break
 
     if accepted_entry is None:
         raise RuntimeError(
@@ -976,6 +974,89 @@ def ensure_super_expert_catalog(catalog, target_super_expert, path):
         )
 
 
+def endpoint_boards(seed_entry, safe_structures, count, seed, mode):
+    """Yield (family, h_walls, v_walls) distinct wall boards for endpoint design.
+
+    Endpoint design does not replay a seed solution, so walls need only be
+    distinct and structurally acceptable for `mode` (the old "safe vs the seed
+    solve" constraint no longer applies). Curated structures first, then
+    mutations."""
+    boards = []
+    seen = set()
+
+    def consider(family, h_walls, v_walls):
+        key = (frozenset(h_walls), frozenset(v_walls))
+        if key in seen:
+            return
+        probe = {
+            'mode': mode,
+            'grid_size': 16,
+            'h_walls': set(h_walls),
+            'v_walls': set(v_walls),
+            'targets': seed_entry['targets'],
+        }
+        if not structurally_acceptable(probe):
+            return
+        seen.add(key)
+        boards.append((family, set(h_walls), set(v_walls)))
+
+    # bare seed board is a valid baseline for endpoint design
+    consider(seed_entry.get('family', 'seed'),
+             set(seed_entry['h_walls']), set(seed_entry['v_walls']))
+
+    # curated structures are tuned for the Hard seed's safe_structures only
+    if mode == 'hard':
+        try:
+            curated = curated_hard_specs(safe_structures)
+        except IndexError:
+            curated = []
+        for family, structure in curated:
+            h_walls = set(seed_entry['h_walls'])
+            v_walls = set(seed_entry['v_walls'])
+            for position, orientation in structure:
+                add_l_wall(h_walls, v_walls, position, orientation)
+            consider(family, h_walls, v_walls)
+
+    attempts = 0
+    families = [family for family in FAMILIES if safe_structures.get(family)]
+    while len(boards) < count * 3 and attempts < 4000 and families:
+        family = families[attempts % len(families)]
+        candidate = mutate_from_safe_structures(
+            seed_entry, family, random.Random(seed + attempts),
+            attempts % 6, safe_structures,
+        )
+        attempts += 1
+        if candidate is not None:
+            consider(family, candidate['h_walls'], candidate['v_walls'])
+    return boards
+
+
+def endpoint_entry(h_walls, v_walls, family, map_id, seed, mode, planner_fn):
+    """Endpoint-design a strict 17-round chained session on a fixed board for
+    `mode` and return the exactly-certified catalog entry (or None)."""
+    plan = planner_fn(set(h_walls), set(v_walls), grid_size=16,
+                      seed=seed, start_attempts=30)
+    if plan is None:
+        return None
+    entry = {
+        'id': map_id,
+        'mode': mode,
+        'family': family,
+        'grid_size': 16,
+        'h_walls': set(h_walls),
+        'v_walls': set(v_walls),
+        'diagonal_walls': {},
+        'targets': {name: tuple(cell) for name, cell in plan['targets'].items()},
+        'robot_positions': {color: tuple(pos)
+                            for color, pos in plan['robot_positions'].items()},
+        'target_order': list(plan['target_order']),
+        'rounds': plan['rounds'],
+        'safe_transforms': [(0, False), (0, True)],
+        'certification': {'method': 'endpoint_design_exact_astar'},
+    }
+    return validate_catalog_entry(entry, exact=True)
+
+
 def build_catalog(
     path,
     target_hard,
@@ -996,132 +1077,53 @@ def build_catalog(
         for item in hard_entries
     }
 
-    if not hard_entries:
-        base = validate_catalog_entry(legacy_hard_seed(), exact=True)
-        hard_entries.append(base)
-        seen_signatures.add(topology_signature(base))
-        catalog['maps'].append(encode_map_entry(base))
-        catalog['search_state']['accepted'] = 1
-        save_catalog(catalog, path)
-        print(f'accepted {base["id"]}: seed topology')
-
-    seed_entry = hard_entries[0]
+    seed_entry = validate_catalog_entry(legacy_hard_seed(), exact=True)
     safe_structures = precompute_safe_structures(seed_entry)
     for family, structures in safe_structures.items():
         print(f'{family}: {len(structures)} safe structures', flush=True)
-    next_seed = max(seed, catalog.get('search_state', {}).get('next_seed', seed))
-    attempts = catalog.get('search_state', {}).get('attempts', 0)
-    run_attempts = 0
 
-    existing_ids = {item['id'] for item in hard_entries}
-    for index, (family, structure) in enumerate(
-        curated_hard_specs(safe_structures),
-        start=1,
-    ):
-        if len(hard_entries) >= target_hard:
-            break
-        map_id = f'hard-certified-{index:02d}'
-        if map_id in existing_ids:
-            continue
-        candidate = deepcopy(seed_entry)
-        candidate['id'] = map_id
-        candidate['family'] = family
-        candidate['h_walls'] = set(candidate['h_walls'])
-        candidate['v_walls'] = set(candidate['v_walls'])
-        for position, orientation in structure:
-            add_l_wall(
-                candidate['h_walls'],
-                candidate['v_walls'],
-                position,
-                orientation,
+    seen_trajectories = {
+        item.get('features', {}).get('trajectory_signature')
+        for item in hard_entries
+    }
+    if len(hard_entries) < target_hard:
+        boards = endpoint_boards(seed_entry, safe_structures, target_hard, seed, 'hard')
+        for idx, (family, h_walls, v_walls) in enumerate(boards):
+            if len(hard_entries) >= target_hard:
+                break
+            map_id = f'hard-certified-{len(hard_entries):02d}'
+            try:
+                entry = endpoint_entry(h_walls, v_walls, family, map_id,
+                                       seed + idx, 'hard', plan_hard_session)
+            except ValueError as error:
+                print(f'rejected board {idx} ({family}): {error}', flush=True)
+                continue
+            if entry is None:
+                print(f'no strict session for board {idx} ({family})', flush=True)
+                continue
+            signature = entry['features']['topology_signature']
+            trajectory = entry['features']['trajectory_signature']
+            if signature in seen_signatures or trajectory in seen_trajectories:
+                continue
+            hard_entries.append(entry)
+            seen_signatures.add(signature)
+            seen_trajectories.add(trajectory)
+            catalog['maps'].append(encode_map_entry(entry))
+            catalog['search_state']['accepted'] = len(hard_entries)
+            save_catalog(catalog, path)
+            print(
+                f'accepted {map_id}: {family}, '
+                f'walls={entry["features"]["wall_count"]}, '
+                f'steps {entry["features"]["round_min_steps"]}-'
+                f'{entry["features"]["round_max_steps"]}, '
+                f'avg {entry["features"]["round_average_steps"]}, '
+                f'traj={trajectory[:8]}',
+                flush=True,
             )
-        candidate['certification'] = {
-            'method': 'exact_astar_curated_topology',
-            'parent': seed_entry['id'],
-        }
-        candidate = validate_catalog_entry(candidate, exact=True)
-        hard_entries.append(candidate)
-        existing_ids.add(map_id)
-        seen_signatures.add(topology_signature(candidate))
-        catalog['maps'].append(encode_map_entry(candidate))
-        catalog['search_state']['accepted'] = len(hard_entries)
-        save_catalog(catalog, path)
-        print(
-            f'accepted {map_id}: {family}, '
-            f'walls={candidate["features"]["wall_count"]}',
-            flush=True,
-        )
-
-    while len(hard_entries) < target_hard and run_attempts < max_attempts:
-        rng = random.Random(next_seed)
-        family_counts = {
-            family: sum(item['family'] == family for item in hard_entries)
-            for family in FAMILIES
-        }
-        minimum_count = min(family_counts.values())
-        underrepresented = [
-            family for family in FAMILIES
-            if family_counts[family] == minimum_count
-        ]
-        family = underrepresented[run_attempts % len(underrepresented)]
-        variant_index = sum(item['family'] == family for item in hard_entries)
-        candidate = mutate_from_safe_structures(
-            seed_entry,
-            family,
-            rng,
-            variant_index,
-            safe_structures,
-        )
-        next_seed += 1
-        attempts += 1
-        run_attempts += 1
-
-        if candidate is None:
-            continue
-        candidate['id'] = f'hard-certified-{len(hard_entries):02d}'
-
-        signature = topology_signature(candidate)
-        if signature in seen_signatures or not structurally_acceptable(candidate):
-            catalog['search_state'].update({
-                'next_seed': next_seed,
-                'attempts': attempts,
-                'accepted': len(hard_entries),
-            })
-            if attempts % 25 == 0:
-                save_catalog(catalog, path)
-            continue
-
-        try:
-            candidate = validate_catalog_entry(candidate, exact=exact)
-        except ValueError:
-            catalog['search_state'].update({
-                'next_seed': next_seed,
-                'attempts': attempts,
-                'accepted': len(hard_entries),
-            })
-            if attempts % 25 == 0:
-                save_catalog(catalog, path)
-            continue
-
-        hard_entries.append(candidate)
-        seen_signatures.add(signature)
-        catalog['maps'].append(encode_map_entry(candidate))
-        catalog['search_state'].update({
-            'next_seed': next_seed,
-            'attempts': attempts,
-            'accepted': len(hard_entries),
-        })
-        save_catalog(catalog, path)
-        print(
-            f'accepted {candidate["id"]}: {family}, '
-            f'walls={candidate["features"]["wall_count"]}, '
-            f'symmetry={candidate["features"]["symmetry_score"]}'
-        , flush=True)
 
     if len(hard_entries) < target_hard:
         raise RuntimeError(
-            f'Accepted {len(hard_entries)}/{target_hard} Hard maps after '
-            f'{run_attempts} attempts. Re-run to resume.'
+            f'Accepted {len(hard_entries)}/{target_hard} Hard maps. Re-run to resume.'
         )
     ensure_normal_catalog(catalog, target_normal, seed + 1000000, path)
     ensure_expert_catalog(catalog, target_expert, path)
