@@ -47,13 +47,13 @@ MODE_CONTRACTS = {
     'v3_momentum': {
         'map_policy': 'certified_catalog',
         'rounds': 17,
-        'min_steps': 4,
-        'max_steps': 13,
+        'min_steps': 6,
+        'max_steps': 12,
         'target_steps': 9,
-        'min_moved_robots': 1,
+        'min_moved_robots': 2,
         'max_round_step_drop': 3,
         'min_momentum_collisions': 1,
-        'min_mechanic_rounds': 15,
+        'min_mechanic_rounds': 17,
     },
     'super_expert': {
         'map_policy': 'certified_catalog',

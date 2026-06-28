@@ -4,6 +4,7 @@ import argparse
 import os
 import random
 import sys
+from collections import deque
 from copy import deepcopy
 
 
@@ -22,6 +23,7 @@ from map_catalog import (
     load_catalog,
     save_catalog,
 )
+from momentum_rules import resolve_momentum_move
 from ricochet_robots_board_data import (
     HORIZONTAL_WALLS,
     TARGETS,
@@ -71,25 +73,6 @@ DIAGONAL_REFLECTIONS = {
     },
 }
 ROBOT_COLORS = ('Red', 'Blue', 'Green', 'Yellow')
-MOMENTUM_TARGET_ORDER = (
-    'Red_Star',
-    'Yellow_Star',
-    'Green_Gear',
-    'Blue_Gear',
-    'Blue_Star',
-    'Blue_Moon',
-    'Red_Moon',
-    'Red_Planet',
-    'Green_Moon',
-    'Wild_Vortex',
-    'Green_Star',
-    'Yellow_Planet',
-    'Green_Planet',
-    'Yellow_Moon',
-    'Blue_Planet',
-    'Red_Gear',
-    'Yellow_Gear',
-)
 
 
 def legacy_hard_seed():
@@ -626,165 +609,140 @@ def ensure_expert_catalog(catalog, target_expert, path):
         )
 
 
-MOMENTUM_MIN_STEPS = 5
-MOMENTUM_MAX_STEPS = 13
-MOMENTUM_MIN_ROBOTS = 2
-MOMENTUM_MAX_DROP = 3
-MOMENTUM_TARGET_STEPS = 9
-MOMENTUM_TAIL = 5
-MOMENTUM_TOPK = 6
+MOM_LO, MOM_HI = 6, 12
+MOM_COLORS = ('Red', 'Blue', 'Green', 'Yellow')
+MOM_SYMBOLS = ('Moon', 'Star', 'Planet', 'Gear')
+MOM_CENTER = {(7, 7), (7, 8), (8, 7), (8, 8)}
+MOM_DIRS = ('top', 'bottom', 'left', 'right')
 
 
-def _momentum_round_penalty(steps, moved, coll, prev):
-    """Soft cost for a tail round so the planner avoids step craters and keeps
-    momentum collisions / multi-robot rounds where the board still allows it."""
-    penalty = 0.0
-    if prev - steps > MOMENTUM_MAX_DROP:
-        penalty += (prev - steps - MOMENTUM_MAX_DROP) * 4
-    if steps < MOMENTUM_MIN_STEPS:
-        penalty += (MOMENTUM_MIN_STEPS - steps) * 3
-    if moved < MOMENTUM_MIN_ROBOTS:
-        penalty += 5
-    if coll < 1:
-        penalty += 4
-    penalty += abs(steps - MOMENTUM_TARGET_STEPS) * 0.3
-    return penalty
-
-
-def plan_momentum_session(board, robots, targets, grid_size, seed):
-    """Plan a smooth 17-round momentum session.
-
-    A greedy phase keeps every early round inside the strict floor (>= 5 steps,
-    >= 2 robots, a momentum collision, no drop beyond 3). The final rounds are
-    completed by a penalised backtracking search that maximises the minimum
-    step count instead of cratering to trivial 2-3 step targets, because a
-    fully strict 17-round momentum session does not exist for a fixed 4-robot
-    board.
-    """
-    solver = RicochetSolver(board, grid_size=grid_size, movement_mode='momentum')
-    cache = {}
-
-    def solve_round(state, target_name):
-        key = (tuple(sorted(state.items())), target_name)
-        if key in cache:
-            return cache[key]
-        color = target_name.split('_')[0]
-        steps, path = solver.solve(
-            state,
-            color,
-            targets[target_name],
-            max_depth=MOMENTUM_MAX_STEPS,
-            max_states=220000,
-        )
-        if steps < 0:
-            cache[key] = None
-            return None
-        feat = solver.analyze_path(state, path, target_color=color)
-        result = (
-            steps,
-            path,
-            feat['moved_robot_count'],
-            feat['momentum_collisions'],
-            feat['end_robots'],
-        )
-        cache[key] = result
-        return result
-
-    def relaxed_rank(state, target_name):
-        distances = solver._get_relaxed_distances(solver._encode(*targets[target_name]))
-        color = target_name.split('_')[0]
-        if color == 'Wild':
-            values = [
-                value for value in (
-                    distances[solver._encode(*position)]
-                    for position in state.values()
-                )
-                if value >= 0
-            ]
-            return min(values) if values else 99
-        value = distances[solver._encode(*state[color])]
-        return value if value >= 0 else 99
-
-    def tail_search(state, remaining, prev):
-        best = [None]
-
-        def recurse(current, names, prior, acc, score):
-            if best[0] is not None and score >= best[0][0]:
-                return
-            if not names:
-                best[0] = (score, acc)
-                return
-            options = []
-            for target_name in names:
-                result = solve_round(current, target_name)
-                if result is None:
+def momentum_endpoints(board, config, cap=120000):
+    """Labeled momentum BFS from `config`. Returns per (colour, cell) the exact
+    optimal momentum depth and, when an optimal-length path with >=1 collision
+    exists, the end state + parent pointers to reconstruct that collision witness.
+    A collision move inherently moves >=2 robots, so >=2-robot is automatic."""
+    start = tuple(config[c] for c in MOM_COLORS)
+    visited = {start: 0}
+    coll_reach = {start: False}
+    parent = {}
+    coll_parent = {}
+    q = deque([start])
+    expanded = 0
+    while q and expanded <= cap:
+        s = q.popleft()
+        d = visited[s]
+        if d >= MOM_HI:
+            continue
+        expanded += 1
+        cfg = {MOM_COLORS[i]: s[i] for i in range(4)}
+        for color in MOM_COLORS:
+            for direction in MOM_DIRS:
+                res = resolve_momentum_move(board, cfg, color, direction)
+                if not res.moved:
                     continue
-                steps, path, moved, coll, end = result
-                options.append((
-                    _momentum_round_penalty(steps, moved, coll, prior),
-                    target_name,
-                    steps,
-                    path,
-                    end,
-                ))
-            options.sort(key=lambda item: item[0])
-            for penalty, target_name, steps, path, end in options:
-                recurse(
-                    end,
-                    [name for name in names if name != target_name],
-                    steps,
-                    acc + [(target_name, path)],
-                    score + penalty,
-                )
+                ns = tuple(res.robots[c] for c in MOM_COLORS)
+                is_coll = any(e.get('type') == 'robot_collision' for e in res.events)
+                nd = d + 1
+                ncoll = coll_reach[s] or is_coll
+                if ns not in visited:
+                    visited[ns] = nd
+                    coll_reach[ns] = ncoll
+                    parent[ns] = (s, (color, direction), is_coll)
+                    if ncoll:
+                        coll_parent[ns] = (s, (color, direction), is_coll)
+                    q.append(ns)
+                elif visited[ns] == nd and ncoll and not coll_reach[ns]:
+                    coll_reach[ns] = True
+                    coll_parent[ns] = (s, (color, direction), is_coll)
+    per_cell = {}
+    for ns, d in visited.items():
+        for i, color in enumerate(MOM_COLORS):
+            cell = ns[i]
+            if cell in MOM_CENTER:
+                continue
+            key = (color, cell)
+            rec = per_cell.get(key)
+            if rec is None or d < rec[0]:
+                per_cell[key] = [d, ns if coll_reach[ns] else None]
+            elif d == rec[0] and rec[1] is None and coll_reach[ns]:
+                rec[1] = ns
+    return per_cell, parent, coll_parent, coll_reach, start
 
-        recurse(state, remaining, prev, [], 0.0)
-        return best[0][1] if best[0] else None
 
-    rng = random.Random(seed)
-    state = dict(robots)
-    remaining = list(targets)
+def momentum_reconstruct(parent, coll_parent, coll_reach, start, end):
+    moves = []
+    cur = end
+    need = True
+    while cur != start:
+        if need and coll_reach.get(cur) and cur in coll_parent:
+            prev, mv, is_coll = coll_parent[cur]
+        else:
+            prev, mv, is_coll = parent[cur]
+        moves.append([mv[0], mv[1]])
+        if is_coll:
+            need = False
+        cur = prev
+    moves.reverse()
+    return moves
+
+
+def plan_momentum_endpoint_session(board, robots_start, rng):
+    """Endpoint-design a strict momentum session: every round 6-12 steps, >=1
+    collision (=> >=2 robots), chained, target placed at an in-band collision
+    endpoint. Returns entry-ready rounds/targets/robots or None."""
+    config = dict(robots_start)
     rounds = []
-    prev = MOMENTUM_TARGET_STEPS
-    while len(remaining) > MOMENTUM_TAIL:
-        ranked = sorted(
-            remaining,
-            key=lambda name: abs(relaxed_rank(state, name) - MOMENTUM_TARGET_STEPS) + rng.random(),
-        )
-        best = None
-        for target_name in ranked[:MOMENTUM_TOPK]:
-            result = solve_round(state, target_name)
-            if result is None:
+    used_cells = set()
+    colored_used = {c: 0 for c in MOM_COLORS}
+    wild_used = False
+    prev = None
+    for _ in range(17):
+        per_cell, parent, coll_parent, coll_reach, start = momentum_endpoints(board, config)
+        min_across = {}
+        for (color, cell), (depth, _cs) in per_cell.items():
+            if cell not in min_across or depth < min_across[cell]:
+                min_across[cell] = depth
+        options = []
+        for (color, cell), (depth, cs) in per_cell.items():
+            if cs is None or not (MOM_LO <= depth <= MOM_HI) or cell in used_cells:
                 continue
-            steps, path, moved, coll, end = result
-            if not (
-                MOMENTUM_MIN_STEPS <= steps <= MOMENTUM_MAX_STEPS
-                and moved >= MOMENTUM_MIN_ROBOTS
-                and coll >= 1
-                and prev - steps <= MOMENTUM_MAX_DROP
-            ):
+            if prev is not None and prev - depth > 3:
                 continue
-            score = (
-                abs(steps - MOMENTUM_TARGET_STEPS)
-                + abs(moved - 3) * 2
-                + max(0, abs(steps - prev) - 1) * 2
-            )
-            candidate = (score, target_name, steps, path, end)
-            if best is None or candidate[0] < best[0]:
-                best = candidate
-        if best is None:
-            break
-        _, target_name, steps, path, end = best
-        rounds.append({'target': target_name, 'path': path})
-        state = end
-        remaining.remove(target_name)
-        prev = steps
-
-    tail = tail_search(state, remaining, prev)
-    if tail is None:
-        return None
-    for target_name, path in tail:
-        rounds.append({'target': target_name, 'path': path})
-    return rounds
+            if any(abs(cell[0] - u[0]) + abs(cell[1] - u[1]) < 2 for u in used_cells):
+                continue
+            options.append((color, cell, depth, cs))
+        if not options:
+            return None
+        rng.shuffle(options)
+        options.sort(key=lambda o: abs(o[2] - 9))
+        chosen = None
+        for color, cell, depth, cs in options:
+            if colored_used[color] < 4:
+                chosen = (color, cell, depth, cs, False)
+                break
+            if not wild_used and depth == min_across[cell]:
+                chosen = (color, cell, depth, cs, True)
+                break
+        if chosen is None:
+            return None
+        color, cell, depth, cs, use_wild = chosen
+        witness = momentum_reconstruct(parent, coll_parent, coll_reach, start, cs)
+        name = 'Wild_Vortex' if use_wild else f'{color}_{MOM_SYMBOLS[colored_used[color]]}'
+        if use_wild:
+            wild_used = True
+        else:
+            colored_used[color] += 1
+        rounds.append({'target': name, 'path': witness, 'cell': cell})
+        used_cells.add(cell)
+        config = {MOM_COLORS[i]: cs[i] for i in range(4)}
+        prev = depth
+    targets = {rd['target']: rd['cell'] for rd in rounds}
+    return {
+        'robot_positions': dict(robots_start),
+        'targets': targets,
+        'target_order': [rd['target'] for rd in rounds],
+        'rounds': [{'target': rd['target'], 'path': rd['path']} for rd in rounds],
+    }
 
 
 def ensure_momentum_catalog(catalog, target_momentum, path):
@@ -795,45 +753,43 @@ def ensure_momentum_catalog(catalog, target_momentum, path):
     ]
     if len(existing) >= target_momentum:
         return
-    # Momentum keeps its own fixed-target Normal base (the layout its planner was
-    # tuned for). It is intentionally decoupled from the endpoint-designed Normal
-    # catalog -- the momentum mechanic needs collisions on a known layout, and
-    # planning momentum on arbitrary designed target cells is unstable.
+    # Endpoint-design a STRICT momentum session (every round 6-12 steps, >=2
+    # robots, >=1 momentum collision) on the symmetric Normal seed board: each
+    # round's target is placed at an in-band collision endpoint reached from the
+    # chained config, so the strict contract holds by construction.
     base_seed = symmetric_normal_seed()
     board = build_board_matrix_from_walls(
         base_seed['h_walls'],
         base_seed['v_walls'],
         grid_size=base_seed['grid_size'],
     )
+    free_cells = [
+        (r, c) for r in range(16) for c in range(16) if (r, c) not in MOM_CENTER
+    ]
     accepted_entry = None
-    # A single greedy session can still craft a weak tail, so scan seeds and
-    # accept the first planned session that passes the full contract (>= 4 steps
-    # every round, smooth <= 3-step drops, >= 15 collision rounds) instead of the
-    # first session that merely reaches 17 rounds.
-    for seed in range(8):
-        rounds = plan_momentum_session(
-            board,
-            dict(base_seed['robot_positions']),
-            base_seed['targets'],
-            base_seed['grid_size'],
-            seed,
-        )
-        if not rounds or len(rounds) != 17:
+    for attempt in range(40):
+        rng = random.Random(7000 + attempt)
+        robots_start = dict(zip(MOM_COLORS, rng.sample(free_cells, 4)))
+        plan = plan_momentum_endpoint_session(board, robots_start, rng)
+        if not plan or len(plan['rounds']) != 17:
             continue
         entry = deepcopy(base_seed)
         entry['id'] = f'momentum-certified-{len(existing):02d}'
         entry['mode'] = 'v3_momentum'
         entry['family'] = f'momentum_{base_seed["family"]}'
-        entry['target_order'] = [item['target'] for item in rounds]
-        entry['rounds'] = rounds
+        entry['diagonal_walls'] = {}
+        entry['targets'] = {n: tuple(c) for n, c in plan['targets'].items()}
+        entry['robot_positions'] = {c: tuple(p) for c, p in plan['robot_positions'].items()}
+        entry['target_order'] = list(plan['target_order'])
+        entry['rounds'] = plan['rounds']
         entry['certification'] = {
-            'method': 'exact_momentum_bfs_planned_tail',
+            'method': 'endpoint_design_exact_momentum_bfs',
             'parent': base_seed['id'],
         }
         try:
             entry = validate_catalog_entry(entry, exact=True)
         except ValueError as error:
-            print(f'rejected Momentum seed {seed}: {error}', flush=True)
+            print(f'rejected Momentum attempt {attempt}: {error}', flush=True)
             continue
         accepted_entry = entry
         break
