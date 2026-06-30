@@ -217,6 +217,13 @@ class TargetPickerThread(QThread):
         if not candidates:
             return self.current_target_idx
 
+        # Momentum solving is slow (~1s+/candidate); re-solving every candidate to
+        # re-validate difficulty froze "抽選目標中..." for ~20s after each round.
+        # The catalog momentum session is already certified, so just follow the
+        # validated order (candidates are already in that order).
+        if self.movement_mode == 'momentum' and self.validated_target_order:
+            return candidates[0]
+
         if self.validated_target_order:
             required_min = self.quality.get('required_min_steps', 0)
             required_max = self.quality.get('required_max_steps')
