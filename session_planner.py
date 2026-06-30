@@ -41,10 +41,11 @@ def _popcount(x):
 
 
 class SessionPlanner:
-    def __init__(self, h_walls, v_walls, lo, hi, min_robots, grid_size=GRID):
+    def __init__(self, h_walls, v_walls, lo, hi, min_robots, grid_size=GRID, spread=False):
         self.lo = lo
         self.hi = hi
         self.min_robots = min_robots
+        self.spread = spread   # bias target placement toward under-populated 4x4 regions
         self.grid_size = grid_size
         self.board = build_board_matrix_from_walls(h_walls, v_walls, grid_size)
         self.solver = RicochetSolver(self.board, grid_size=grid_size)
@@ -181,7 +182,15 @@ class SessionPlanner:
             if not options:
                 return False
             want = desired_steps[len(acc)] if desired_steps else (lo + hi) // 2
-            options.sort(key=lambda o: (-o[4], abs(o[3] - want), rng.random()))
+            if self.spread:
+                # spread targets across the board: prefer cells in the least
+                # populated 4x4 region, then more robots, then mid-band steps.
+                def region_pop(cell):
+                    rr, cc = cell[0] // 4, cell[1] // 4
+                    return sum(1 for u in used_cells if u[0] // 4 == rr and u[1] // 4 == cc)
+                options.sort(key=lambda o: (region_pop(o[2]), -o[4], abs(o[3] - want), rng.random()))
+            else:
+                options.sort(key=lambda o: (-o[4], abs(o[3] - want), rng.random()))
             for is_wild, color, cell, steps, movers, ns in options[:16]:
                 name = 'Wild_Vortex' if is_wild else f'{color}_{SYMBOLS[colored_used[color]]}'
                 colored2 = dict(colored_used)
@@ -204,10 +213,10 @@ class SessionPlanner:
 
 
 def plan_session(h_walls, v_walls, lo, hi, min_robots, grid_size=GRID, seed=0,
-                 start_attempts=24, desired_steps=None):
+                 start_attempts=24, desired_steps=None, spread=False):
     """Try several random robot starts; return the first full 17-round session as
     an entry-ready dict (robot_positions, targets, target_order, rounds) or None."""
-    planner = SessionPlanner(h_walls, v_walls, lo, hi, min_robots, grid_size)
+    planner = SessionPlanner(h_walls, v_walls, lo, hi, min_robots, grid_size, spread=spread)
     cells = [(r, c) for r in range(grid_size) for c in range(grid_size)
              if (r, c) not in CENTER]
     for attempt in range(start_attempts):
@@ -232,17 +241,17 @@ def plan_session(h_walls, v_walls, lo, hi, min_robots, grid_size=GRID, seed=0,
 
 
 def plan_hard_session(h_walls, v_walls, grid_size=GRID, seed=0, start_attempts=30,
-                      desired_steps=None):
+                      desired_steps=None, spread=False):
     lo, hi, mr = MODE_BANDS['hard']
     return plan_session(h_walls, v_walls, lo, hi, mr, grid_size, seed,
-                        start_attempts, desired_steps)
+                        start_attempts, desired_steps, spread=spread)
 
 
 def plan_normal_session(h_walls, v_walls, grid_size=GRID, seed=0, start_attempts=30,
-                        desired_steps=None):
+                        desired_steps=None, spread=False):
     lo, hi, mr = MODE_BANDS['normal']
     return plan_session(h_walls, v_walls, lo, hi, mr, grid_size, seed,
-                        start_attempts, desired_steps)
+                        start_attempts, desired_steps, spread=spread)
 
 
 if __name__ == '__main__':

@@ -33,6 +33,9 @@ from ricochet_robots_board_data import (
 from solver import RicochetSolver
 
 
+# Test-version toggle: spread targets across the board (set by --spread in main).
+SPREAD_TARGETS = False
+
 FAMILIES = (
     'balanced_rooms',
     'offset_pinwheel',
@@ -686,7 +689,7 @@ def momentum_reconstruct(parent, coll_parent, coll_reach, start, end):
     return moves
 
 
-def plan_momentum_endpoint_session(board, robots_start, rng):
+def plan_momentum_endpoint_session(board, robots_start, rng, spread=False):
     """Endpoint-design a strict momentum session: every round 6-12 steps, >=1
     collision (=> >=2 robots), chained, target placed at an in-band collision
     endpoint. Returns entry-ready rounds/targets/robots or None."""
@@ -714,7 +717,13 @@ def plan_momentum_endpoint_session(board, robots_start, rng):
         if not options:
             return None
         rng.shuffle(options)
-        options.sort(key=lambda o: abs(o[2] - 9))
+        if spread:
+            def region_pop(cell):
+                rr, cc = cell[0] // 4, cell[1] // 4
+                return sum(1 for u in used_cells if u[0] // 4 == rr and u[1] // 4 == cc)
+            options.sort(key=lambda o: (region_pop(o[1]), abs(o[2] - 9)))
+        else:
+            options.sort(key=lambda o: abs(o[2] - 9))
         chosen = None
         for color, cell, depth, cs in options:
             if colored_used[color] < 4:
@@ -770,7 +779,7 @@ def ensure_momentum_catalog(catalog, target_momentum, path):
     for attempt in range(40):
         rng = random.Random(7000 + attempt)
         robots_start = dict(zip(MOM_COLORS, rng.sample(free_cells, 4)))
-        plan = plan_momentum_endpoint_session(board, robots_start, rng)
+        plan = plan_momentum_endpoint_session(board, robots_start, rng, spread=SPREAD_TARGETS)
         if not plan or len(plan['rounds']) != 17:
             continue
         entry = deepcopy(base_seed)
@@ -991,7 +1000,7 @@ def endpoint_entry(h_walls, v_walls, family, map_id, seed, mode, planner_fn):
     """Endpoint-design a strict 17-round chained session on a fixed board for
     `mode` and return the exactly-certified catalog entry (or None)."""
     plan = planner_fn(set(h_walls), set(v_walls), grid_size=16,
-                      seed=seed, start_attempts=30)
+                      seed=seed, start_attempts=30, spread=SPREAD_TARGETS)
     if plan is None:
         return None
     entry = {
@@ -1110,7 +1119,14 @@ def main():
         action='store_true',
         help='Re-run exact A*/BFS for every derived map instead of using the additive proof.',
     )
+    parser.add_argument(
+        '--spread',
+        action='store_true',
+        help='Test version: spread targets across the board (bias toward under-populated 4x4 regions).',
+    )
     args = parser.parse_args()
+    global SPREAD_TARGETS
+    SPREAD_TARGETS = args.spread
     catalog = build_catalog(
         os.path.abspath(args.output),
         max(1, args.target_hard),
