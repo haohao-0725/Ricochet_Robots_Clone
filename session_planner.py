@@ -52,55 +52,119 @@ class SessionPlanner:
         self.all_cells = [(r, c) for r in range(grid_size) for c in range(grid_size)
                           if (r, c) not in CENTER]
         self._cache = {}
+        self._build_slide_tables()
+
+    def _build_slide_tables(self):
+        """Per (cell, direction): bitmask of the ray to the wall, the no-blocker
+        endpoint, and the per-step stride (+-1 / +-grid_size). Lets the BFS
+        resolve a slide in O(1) int ops (mask intersect + lowest/highest set
+        bit for the first blocker) instead of walking the ray cell by cell."""
+        n = self.grid_size * self.grid_size
+        rays = self.solver._rays
+        self._ray_mask = [[0] * 4 for _ in range(n)]
+        self._ray_far = [[0] * 4 for _ in range(n)]
+        self._ray_stride = [[0] * 4 for _ in range(n)]  # +-1 / +-grid_size
+        for cell in range(n):
+            for di in range(4):
+                ray = rays[cell][di]
+                if not ray:
+                    self._ray_far[cell][di] = cell
+                    continue
+                m = 0
+                for c in ray:
+                    m |= 1 << c
+                self._ray_mask[cell][di] = m
+                self._ray_far[cell][di] = ray[-1]
+                self._ray_stride[cell][di] = ray[0] - cell
+
+    def _pack(self, config):
+        """Pack a {colour: (r, c)} config into one int key (a byte per robot)."""
+        gs = self.grid_size
+        key = 0
+        for i, c in enumerate(BASE_COLORS):
+            r, col = config[c]
+            key |= (r * gs + col) << (8 * i)
+        return key
+
+    def _unpack(self, key):
+        gs = self.grid_size
+        return tuple(divmod((key >> (8 * i)) & 255, gs)
+                     for i in range(len(BASE_COLORS)))
 
     def _endpoints(self, config, cap=160000):
         """ONE labeled BFS to depth `hi` computing optimal-to-every-cell for every
-        colour at once. Returns (per_colour, parent, start) where
-        per_colour[colour][cell] = (opt_depth, movers, end_state_tuple).
+        colour at once. Returns (per_colour, parent, start_key) where
+        per_colour[colour][cell] = (opt_depth, movers, end_state_key).
 
         Records the TRUE minimum depth a colour first reaches each cell (any
         depth, BFS depth-ordered), so a cheap (<lo) cell keeps its small optimal
         and is later filtered out -- never mistaken for an in-band endpoint via a
         leave-and-return detour. Callers filter to [lo,hi]; an exact re-solve
-        (verify pass) guards the state cap."""
-        start = tuple(config[c] for c in BASE_COLORS)
-        cached = self._cache.get(start)
+        (verify pass) guards the state cap.
+
+        States are packed ints (one cell byte per robot) and slides use the
+        solver's precomputed rays with a bitboard occupancy mask -- this is the
+        planner's hot loop (~90% of session design time)."""
+        start_key = self._pack(config)
+        cached = self._cache.get(start_key)
         if cached is not None:
             return cached
-        bit = {c: 1 << i for i, c in enumerate(BASE_COLORS)}
+        gs = self.grid_size
+        hi = self.hi
+        ray_mask = self._ray_mask
+        ray_far = self._ray_far
+        ray_stride = self._ray_stride
+        n_robots = len(BASE_COLORS)
+        center_cells = {r * gs + c for r, c in CENTER}
         per_colour = {c: {} for c in BASE_COLORS}
+        per_colour_by_i = [per_colour[c] for c in BASE_COLORS]
         parent = {}
-        visited = {start: 0}
-        q = deque([(start, 0, 0)])
+        # plain FIFO BFS visits states in non-decreasing depth, so the first
+        # visit is minimal -- a membership set is enough
+        visited = {start_key}
+        q = deque([(start_key, 0, 0)])
         expanded = 0
         while q and expanded <= cap:
-            state, depth, movers = q.popleft()
-            if depth >= self.hi:
+            key, depth, movers = q.popleft()
+            if depth >= hi:
                 continue
             expanded += 1
-            occ = set(state)
-            for i, col in enumerate(BASE_COLORS):
-                r, c = state[i]
-                for d in DIRECTIONS:
-                    nr, nc = self.solver.get_slide_endpoint(r, c, d, occ - {(r, c)}, color=col)
-                    if (nr, nc) == (r, c):
+            cells = [(key >> (8 * i)) & 255 for i in range(n_robots)]
+            mask = 0
+            for ci in cells:
+                mask |= 1 << ci
+            for i in range(n_robots):
+                ci = cells[i]
+                shift = 8 * i
+                masks_ci = ray_mask[ci]
+                for di in range(4):
+                    m = mask & masks_ci[di]
+                    if m == 0:
+                        end = ray_far[ci][di]
+                    else:
+                        s = ray_stride[ci][di]
+                        if s > 0:
+                            end = (m & -m).bit_length() - 1 - s
+                        else:
+                            end = m.bit_length() - 1 - s
+                    if end == ci:
                         continue
-                    ns = list(state)
-                    ns[i] = (nr, nc)
-                    ns = tuple(ns)
+                    nk = key + ((end - ci) << shift)
                     nd = depth + 1
-                    if visited.get(ns, 99) <= nd:
+                    if nk in visited:
                         continue
-                    visited[ns] = nd
-                    parent[ns] = (state, (col, d))
-                    nmov = movers | bit[col]
-                    cell = (nr, nc)
-                    if cell not in per_colour[col] and cell not in CENTER:
-                        per_colour[col][cell] = (nd, _popcount(nmov), ns)
-                    if nd < self.hi:
-                        q.append((ns, nd, nmov))
-        result = (per_colour, parent, start)
-        self._cache[start] = result
+                    visited.add(nk)
+                    parent[nk] = (key, (BASE_COLORS[i], DIRECTIONS[di]))
+                    nmov = movers | (1 << i)
+                    if end not in center_cells:
+                        pc = per_colour_by_i[i]
+                        cell = (end // gs, end % gs)
+                        if cell not in pc:
+                            pc[cell] = (nd, _popcount(nmov), nk)
+                    if nd < hi:
+                        q.append((nk, nd, nmov))
+        result = (per_colour, parent, start_key)
+        self._cache[start_key] = result
         return result
 
     def verify(self, robot_start, rounds):
@@ -124,10 +188,10 @@ class SessionPlanner:
         return True
 
     @staticmethod
-    def _reconstruct(parent, start, end_state):
+    def _reconstruct(parent, start_key, end_key):
         moves = []
-        s = end_state
-        while s != start:
+        s = end_key
+        while s != start_key:
             prev, (col, d) = parent[s]
             moves.append([col, d])
             s = prev
@@ -202,7 +266,7 @@ class SessionPlanner:
                 path = self._reconstruct(parent, start, ns)
                 acc.append({'target': name, 'path': path, 'color': color,
                             'cell': cell, 'steps': steps, 'movers': movers})
-                end_config = dict(zip(BASE_COLORS, ns))
+                end_config = dict(zip(BASE_COLORS, self._unpack(ns)))
                 if dfs(end_config, used_cells | {cell}, colored2, wild2, steps, acc):
                     return True
                 acc.pop()
