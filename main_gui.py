@@ -1202,19 +1202,38 @@ class MainWindow(QMainWindow):
             self.overlay_widget.resize(self.board_view.size())
 
     def show_mode_info(self):
+        from mode_contracts import MODE_CONTRACTS
+
+        def contract_line(mode):
+            c = MODE_CONTRACTS[mode]
+            parts = []
+            if c.get('max_steps'):
+                parts.append(f"最短解 {c['min_steps']}–{c['max_steps']} 步")
+            if c.get('min_moved_robots', 1) > 1:
+                parts.append(f"每題至少 {c['min_moved_robots']} 台機器人")
+            if c.get('max_round_step_drop') is not None:
+                parts.append(f"相鄰回合最多降 {c['max_round_step_drop']} 步")
+            if c.get('max_session_step_range') is not None:
+                parts.append(f"整場步數範圍不超過 {c['max_session_step_range']}")
+            if c.get('min_average_steps'):
+                parts.append(f"平均至少 {c['min_average_steps']} 步")
+            return '、'.join(parts)
+
+        expert_rounds = MODE_CONTRACTS['expert']['min_mechanic_rounds']
+        momentum_rounds = MODE_CONTRACTS['v3_momentum']['min_mechanic_rounds']
         QMessageBox.information(
             self,
             "模式說明",
-            "Easy：固定原始棋盤，不生成或修改地圖；前段會優先安排較短目標，再逐步提高解題長度。\n\n"
-            "Normal：使用離線認證的平衡拓樸；完整 17 題皆經連續驗證，"
-            "目前最短解為 6 到 9 步，且每題至少移動 2 台不同機器人。\n\n"
-            "Hard：使用 4 種拓樸家族與 12 張認證基底；完整 17 題為 9 到 13 步，"
-            "每題至少移動 3 台不同機器人，相鄰回合最多下降 3 步。\n\n"
-            "Expert：完整 17 題經 exact BFS 驗證，彩色斜牆配置會讓 12 題的保存最短解實際觸發反射。\n\n"
-            "Momentum：完整 17 題經動量 BFS 驗證，其中 15 題的最短解會觸發推撞或連鎖；"
-            "其餘 2 題保留為收尾目標。\n\n"
-            "Super Expert：改為 16x16 密集認證拓樸，不再只依靠 32x32 尺寸；"
-            "完整 17 題維持 9 到 13 步、至少 3 台機器人與較高支援步數。"
+            "所有生成模式的完整 17 題都經離線 exact 驗證（endpoint 反向建構）。\n\n"
+            "Easy：固定原始棋盤，不生成或修改地圖；前段會優先安排較短目標，"
+            "再逐步提高解題長度。\n\n"
+            f"Normal：離線認證的平衡拓樸；{contract_line('normal')}。\n\n"
+            f"Hard：4 種拓樸家族、12 張認證基底；{contract_line('hard')}。\n\n"
+            f"Expert：彩色斜牆反射；{contract_line('expert')}，"
+            f"至少 {expert_rounds} 題的最短解實際觸發反射。\n\n"
+            f"Momentum：動量推撞規則；{contract_line('v3_momentum')}，"
+            f"{momentum_rounds} 題全部都需要至少一次動量碰撞才能達成最短解。\n\n"
+            f"Super Expert：16x16 密集認證拓樸；{contract_line('super_expert')}。"
         )
 
     # ====== Audio Handlers ======
