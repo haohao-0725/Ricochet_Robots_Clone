@@ -102,6 +102,14 @@ def decode_map_entry(entry):
             'color': item['color'],
         }
     decoded['diagonal_walls'] = diagonal_walls
+    portals = {}
+    for item in decoded.get('portals', []):
+        portals[tuple(item['cell'])] = {
+            'color': item['color'],
+            'exit': tuple(item['exit']),
+        }
+    decoded['portals'] = portals
+    decoded['sand_cells'] = [tuple(item) for item in decoded.get('sand_cells', [])]
     for round_data in decoded['rounds']:
         round_data['path'] = [tuple(move) for move in round_data['path']]
         round_data['end_robots'] = {
@@ -139,6 +147,15 @@ def encode_map_entry(entry):
         }
         for cell, value in sorted(entry.get('diagonal_walls', {}).items())
     ]
+    encoded['portals'] = [
+        {
+            'cell': list(cell),
+            'color': value['color'],
+            'exit': list(value['exit']),
+        }
+        for cell, value in sorted(entry.get('portals', {}).items())
+    ]
+    encoded['sand_cells'] = [list(cell) for cell in sorted(entry.get('sand_cells', []))]
     encoded['safe_transforms'] = [
         [int(rotations), bool(mirror)]
         for rotations, mirror in entry.get('safe_transforms', [(0, False)])

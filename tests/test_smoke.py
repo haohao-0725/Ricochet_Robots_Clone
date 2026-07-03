@@ -104,6 +104,7 @@ def test_board_generation():
         "expert": BoardGenerator().generate_expert(max_attempts=3),
         "v3_momentum": BoardGenerator().generate("v3_momentum"),
         "super_expert": BoardGenerator().generate("super_expert"),
+        "chaos": BoardGenerator().generate("chaos"),
     }
     for mode, result in special_results.items():
         assert result, f"{mode} 地圖載入失敗"
@@ -123,6 +124,33 @@ def test_board_generation():
         item["features"]["momentum_collisions"] > 0
         for item in momentum_rounds
     ) >= 15
+    # collision finale: every momentum round's optimal ENDS with a crash
+    assert all(
+        item["features"].get("final_move_momentum_collisions", 0) > 0
+        for item in momentum_rounds
+    ), "Momentum 碰撞終結合約未滿足"
+
+    chaos_result = special_results["chaos"]
+    assert chaos_result["grid_size"] == 25
+    assert len(chaos_result["portals"]) == 10
+    assert len(chaos_result["sand_cells"]) == 8
+    chaos_rounds = chaos_result["validation_rounds"]
+    assert all(
+        item["features"].get("chaos_events", 0) > 0
+        for item in chaos_rounds
+    ), "Chaos 每題都必須觸發至少一次特殊機制"
+
+    # chaos rounds must replay through the engine (rules parity with the GUI)
+    from game_engine import GameEngine
+    engine = GameEngine()
+    engine.load_generated_board(chaos_result)
+    for index, round_data in enumerate(chaos_rounds):
+        assert engine.get_current_target()[0] == round_data["target"]
+        for color, direction in round_data["path"]:
+            assert engine.move_robot(color, direction)
+        assert engine.check_win()
+        if index < len(chaos_rounds) - 1:
+            assert not engine.next_target(mark_completed=True)
 
 
 def test_easy_remains_static():

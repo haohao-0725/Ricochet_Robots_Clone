@@ -65,7 +65,7 @@
       "target_steps": 9
     }
   },
-  "generated_at": "2026-06-30T14:51:59.837043+00:00",
+  "generated_at": "2026-07-03T02:42:46.881646+00:00",
   "generator_version": "structured_qd_catalog_v2",
   "maps": [
     {
@@ -28820,1744 +28820,6 @@
     },
     {
       "certification": {
-        "contract": "v3_momentum",
-        "method": "exact_astar_or_bfs",
-        "rounds": 17
-      },
-      "certified": true,
-      "diagonal_walls": [],
-      "family": "momentum_symmetric_normal_seed",
-      "features": {
-        "average_robot_switches": 2.941,
-        "average_states_expanded": 45617.529,
-        "average_support_moves": 4.176,
-        "max_round_step_drop": 1,
-        "max_wall_cluster": 8,
-        "min_target_spacing": 2,
-        "round_average_steps": 8.941,
-        "round_max_steps": 9,
-        "round_min_moved_robots": 2,
-        "round_min_steps": 8,
-        "round_step_range": 1,
-        "symmetry_score": 0.5,
-        "target_quadrant_balance": 1,
-        "topology_signature": "be382d43944e9298",
-        "trajectory_signature": "3c2569f11ca699e4",
-        "wall_count": 66,
-        "wall_density": 0.1375,
-        "wall_quadrant_balance": 3
-      },
-      "grid_size": 16,
-      "h_walls": [
-        [
-          0,
-          2
-        ],
-        [
-          0,
-          4
-        ],
-        [
-          0,
-          12
-        ],
-        [
-          1,
-          1
-        ],
-        [
-          2,
-          14
-        ],
-        [
-          3,
-          6
-        ],
-        [
-          3,
-          8
-        ],
-        [
-          4,
-          0
-        ],
-        [
-          4,
-          4
-        ],
-        [
-          4,
-          15
-        ],
-        [
-          5,
-          9
-        ],
-        [
-          6,
-          1
-        ],
-        [
-          6,
-          7
-        ],
-        [
-          6,
-          8
-        ],
-        [
-          6,
-          11
-        ],
-        [
-          8,
-          4
-        ],
-        [
-          8,
-          5
-        ],
-        [
-          8,
-          7
-        ],
-        [
-          8,
-          8
-        ],
-        [
-          8,
-          12
-        ],
-        [
-          9,
-          2
-        ],
-        [
-          9,
-          15
-        ],
-        [
-          10,
-          11
-        ],
-        [
-          11,
-          0
-        ],
-        [
-          11,
-          7
-        ],
-        [
-          11,
-          9
-        ],
-        [
-          12,
-          1
-        ],
-        [
-          12,
-          4
-        ],
-        [
-          13,
-          14
-        ],
-        [
-          14,
-          6
-        ],
-        [
-          14,
-          11
-        ]
-      ],
-      "id": "momentum-certified-00",
-      "mode": "v3_momentum",
-      "robot_positions": {
-        "Blue": [
-          0,
-          11
-        ],
-        "Green": [
-          5,
-          6
-        ],
-        "Red": [
-          5,
-          2
-        ],
-        "Yellow": [
-          9,
-          7
-        ]
-      },
-      "rounds": [
-        {
-          "end_robots": {
-            "Blue": [
-              7,
-              5
-            ],
-            "Green": [
-              3,
-              5
-            ],
-            "Red": [
-              7,
-              2
-            ],
-            "Yellow": [
-              9,
-              7
-            ]
-          },
-          "features": {
-            "changed_robot_total": 12,
-            "diagonal_reflections": 0,
-            "momentum_chain_collisions": 0,
-            "momentum_collisions": 3,
-            "quadrant_transitions": 5,
-            "robot_switches": 5,
-            "support_moves": 6,
-            "target_robot_moves": 3
-          },
-          "moved_robot_count": 3,
-          "moved_robots": [
-            "Blue",
-            "Green",
-            "Red"
-          ],
-          "path": [
-            [
-              "Red",
-              "bottom"
-            ],
-            [
-              "Blue",
-              "bottom"
-            ],
-            [
-              "Blue",
-              "left"
-            ],
-            [
-              "Red",
-              "top"
-            ],
-            [
-              "Green",
-              "top"
-            ],
-            [
-              "Blue",
-              "right"
-            ],
-            [
-              "Green",
-              "top"
-            ],
-            [
-              "Green",
-              "left"
-            ],
-            [
-              "Green",
-              "bottom"
-            ]
-          ],
-          "states_expanded": 39502,
-          "steps": 9,
-          "target": "Blue_Moon"
-        },
-        {
-          "end_robots": {
-            "Blue": [
-              7,
-              5
-            ],
-            "Green": [
-              3,
-              5
-            ],
-            "Red": [
-              0,
-              12
-            ],
-            "Yellow": [
-              2,
-              14
-            ]
-          },
-          "features": {
-            "changed_robot_total": 10,
-            "diagonal_reflections": 0,
-            "momentum_chain_collisions": 0,
-            "momentum_collisions": 1,
-            "quadrant_transitions": 3,
-            "robot_switches": 3,
-            "support_moves": 4,
-            "target_robot_moves": 5
-          },
-          "moved_robot_count": 2,
-          "moved_robots": [
-            "Red",
-            "Yellow"
-          ],
-          "path": [
-            [
-              "Red",
-              "top"
-            ],
-            [
-              "Red",
-              "right"
-            ],
-            [
-              "Red",
-              "top"
-            ],
-            [
-              "Yellow",
-              "right"
-            ],
-            [
-              "Yellow",
-              "bottom"
-            ],
-            [
-              "Yellow",
-              "right"
-            ],
-            [
-              "Yellow",
-              "top"
-            ],
-            [
-              "Red",
-              "right"
-            ],
-            [
-              "Yellow",
-              "bottom"
-            ]
-          ],
-          "states_expanded": 112318,
-          "steps": 9,
-          "target": "Yellow_Moon"
-        },
-        {
-          "end_robots": {
-            "Blue": [
-              8,
-              5
-            ],
-            "Green": [
-              9,
-              0
-            ],
-            "Red": [
-              9,
-              3
-            ],
-            "Yellow": [
-              2,
-              14
-            ]
-          },
-          "features": {
-            "changed_robot_total": 11,
-            "diagonal_reflections": 0,
-            "momentum_chain_collisions": 0,
-            "momentum_collisions": 2,
-            "quadrant_transitions": 6,
-            "robot_switches": 2,
-            "support_moves": 3,
-            "target_robot_moves": 6
-          },
-          "moved_robot_count": 2,
-          "moved_robots": [
-            "Green",
-            "Red"
-          ],
-          "path": [
-            [
-              "Red",
-              "left"
-            ],
-            [
-              "Red",
-              "bottom"
-            ],
-            [
-              "Red",
-              "left"
-            ],
-            [
-              "Red",
-              "bottom"
-            ],
-            [
-              "Red",
-              "right"
-            ],
-            [
-              "Green",
-              "bottom"
-            ],
-            [
-              "Green",
-              "left"
-            ],
-            [
-              "Green",
-              "bottom"
-            ],
-            [
-              "Red",
-              "left"
-            ]
-          ],
-          "states_expanded": 49888,
-          "steps": 9,
-          "target": "Red_Moon"
-        },
-        {
-          "end_robots": {
-            "Blue": [
-              8,
-              5
-            ],
-            "Green": [
-              13,
-              1
-            ],
-            "Red": [
-              15,
-              0
-            ],
-            "Yellow": [
-              2,
-              14
-            ]
-          },
-          "features": {
-            "changed_robot_total": 9,
-            "diagonal_reflections": 0,
-            "momentum_chain_collisions": 0,
-            "momentum_collisions": 1,
-            "quadrant_transitions": 2,
-            "robot_switches": 1,
-            "support_moves": 2,
-            "target_robot_moves": 7
-          },
-          "moved_robot_count": 2,
-          "moved_robots": [
-            "Green",
-            "Red"
-          ],
-          "path": [
-            [
-              "Red",
-              "bottom"
-            ],
-            [
-              "Red",
-              "left"
-            ],
-            [
-              "Green",
-              "bottom"
-            ],
-            [
-              "Green",
-              "right"
-            ],
-            [
-              "Green",
-              "top"
-            ],
-            [
-              "Green",
-              "left"
-            ],
-            [
-              "Green",
-              "bottom"
-            ],
-            [
-              "Green",
-              "left"
-            ],
-            [
-              "Green",
-              "top"
-            ]
-          ],
-          "states_expanded": 49539,
-          "steps": 9,
-          "target": "Green_Moon"
-        },
-        {
-          "end_robots": {
-            "Blue": [
-              8,
-              5
-            ],
-            "Green": [
-              15,
-              4
-            ],
-            "Red": [
-              4,
-              14
-            ],
-            "Yellow": [
-              4,
-              15
-            ]
-          },
-          "features": {
-            "changed_robot_total": 9,
-            "diagonal_reflections": 0,
-            "momentum_chain_collisions": 0,
-            "momentum_collisions": 2,
-            "quadrant_transitions": 2,
-            "robot_switches": 3,
-            "support_moves": 4,
-            "target_robot_moves": 5
-          },
-          "moved_robot_count": 3,
-          "moved_robots": [
-            "Green",
-            "Red",
-            "Yellow"
-          ],
-          "path": [
-            [
-              "Green",
-              "bottom"
-            ],
-            [
-              "Green",
-              "right"
-            ],
-            [
-              "Red",
-              "right"
-            ],
-            [
-              "Red",
-              "top"
-            ],
-            [
-              "Red",
-              "left"
-            ],
-            [
-              "Red",
-              "bottom"
-            ],
-            [
-              "Yellow",
-              "right"
-            ],
-            [
-              "Yellow",
-              "bottom"
-            ],
-            [
-              "Red",
-              "right"
-            ]
-          ],
-          "states_expanded": 10865,
-          "steps": 9,
-          "target": "Red_Star"
-        },
-        {
-          "end_robots": {
-            "Blue": [
-              3,
-              0
-            ],
-            "Green": [
-              15,
-              4
-            ],
-            "Red": [
-              4,
-              0
-            ],
-            "Yellow": [
-              4,
-              15
-            ]
-          },
-          "features": {
-            "changed_robot_total": 9,
-            "diagonal_reflections": 0,
-            "momentum_chain_collisions": 0,
-            "momentum_collisions": 1,
-            "quadrant_transitions": 4,
-            "robot_switches": 1,
-            "support_moves": 1,
-            "target_robot_moves": 8
-          },
-          "moved_robot_count": 2,
-          "moved_robots": [
-            "Blue",
-            "Red"
-          ],
-          "path": [
-            [
-              "Red",
-              "left"
-            ],
-            [
-              "Blue",
-              "left"
-            ],
-            [
-              "Blue",
-              "bottom"
-            ],
-            [
-              "Blue",
-              "right"
-            ],
-            [
-              "Blue",
-              "top"
-            ],
-            [
-              "Blue",
-              "left"
-            ],
-            [
-              "Blue",
-              "top"
-            ],
-            [
-              "Blue",
-              "left"
-            ],
-            [
-              "Blue",
-              "bottom"
-            ]
-          ],
-          "states_expanded": 10294,
-          "steps": 9,
-          "target": "Blue_Star"
-        },
-        {
-          "end_robots": {
-            "Blue": [
-              14,
-              13
-            ],
-            "Green": [
-              15,
-              15
-            ],
-            "Red": [
-              4,
-              14
-            ],
-            "Yellow": [
-              4,
-              15
-            ]
-          },
-          "features": {
-            "changed_robot_total": 10,
-            "diagonal_reflections": 0,
-            "momentum_chain_collisions": 1,
-            "momentum_collisions": 4,
-            "quadrant_transitions": 4,
-            "robot_switches": 4,
-            "support_moves": 5,
-            "target_robot_moves": 4
-          },
-          "moved_robot_count": 3,
-          "moved_robots": [
-            "Blue",
-            "Green",
-            "Red"
-          ],
-          "path": [
-            [
-              "Red",
-              "right"
-            ],
-            [
-              "Blue",
-              "bottom"
-            ],
-            [
-              "Blue",
-              "right"
-            ],
-            [
-              "Blue",
-              "bottom"
-            ],
-            [
-              "Green",
-              "top"
-            ],
-            [
-              "Green",
-              "right"
-            ],
-            [
-              "Blue",
-              "top"
-            ],
-            [
-              "Green",
-              "right"
-            ],
-            [
-              "Green",
-              "bottom"
-            ]
-          ],
-          "states_expanded": 15638,
-          "steps": 9,
-          "target": "Green_Star"
-        },
-        {
-          "end_robots": {
-            "Blue": [
-              13,
-              13
-            ],
-            "Green": [
-              11,
-              13
-            ],
-            "Red": [
-              4,
-              14
-            ],
-            "Yellow": [
-              4,
-              15
-            ]
-          },
-          "features": {
-            "changed_robot_total": 11,
-            "diagonal_reflections": 0,
-            "momentum_chain_collisions": 0,
-            "momentum_collisions": 2,
-            "quadrant_transitions": 2,
-            "robot_switches": 2,
-            "support_moves": 3,
-            "target_robot_moves": 6
-          },
-          "moved_robot_count": 2,
-          "moved_robots": [
-            "Blue",
-            "Green"
-          ],
-          "path": [
-            [
-              "Blue",
-              "bottom"
-            ],
-            [
-              "Green",
-              "top"
-            ],
-            [
-              "Green",
-              "left"
-            ],
-            [
-              "Green",
-              "bottom"
-            ],
-            [
-              "Green",
-              "right"
-            ],
-            [
-              "Green",
-              "top"
-            ],
-            [
-              "Green",
-              "right"
-            ],
-            [
-              "Blue",
-              "top"
-            ],
-            [
-              "Blue",
-              "top"
-            ]
-          ],
-          "states_expanded": 17885,
-          "steps": 9,
-          "target": "Green_Planet"
-        },
-        {
-          "end_robots": {
-            "Blue": [
-              13,
-              13
-            ],
-            "Green": [
-              11,
-              7
-            ],
-            "Red": [
-              11,
-              3
-            ],
-            "Yellow": [
-              0,
-              15
-            ]
-          },
-          "features": {
-            "changed_robot_total": 11,
-            "diagonal_reflections": 0,
-            "momentum_chain_collisions": 0,
-            "momentum_collisions": 3,
-            "quadrant_transitions": 3,
-            "robot_switches": 2,
-            "support_moves": 7,
-            "target_robot_moves": 2
-          },
-          "moved_robot_count": 3,
-          "moved_robots": [
-            "Green",
-            "Red",
-            "Yellow"
-          ],
-          "path": [
-            [
-              "Yellow",
-              "top"
-            ],
-            [
-              "Red",
-              "right"
-            ],
-            [
-              "Red",
-              "top"
-            ],
-            [
-              "Red",
-              "left"
-            ],
-            [
-              "Red",
-              "bottom"
-            ],
-            [
-              "Red",
-              "left"
-            ],
-            [
-              "Red",
-              "bottom"
-            ],
-            [
-              "Green",
-              "left"
-            ],
-            [
-              "Green",
-              "left"
-            ]
-          ],
-          "states_expanded": 99011,
-          "steps": 9,
-          "target": "Green_Gear"
-        },
-        {
-          "end_robots": {
-            "Blue": [
-              11,
-              5
-            ],
-            "Green": [
-              11,
-              2
-            ],
-            "Red": [
-              13,
-              5
-            ],
-            "Yellow": [
-              0,
-              15
-            ]
-          },
-          "features": {
-            "changed_robot_total": 12,
-            "diagonal_reflections": 0,
-            "momentum_chain_collisions": 0,
-            "momentum_collisions": 3,
-            "quadrant_transitions": 1,
-            "robot_switches": 4,
-            "support_moves": 9,
-            "target_robot_moves": 0
-          },
-          "moved_robot_count": 2,
-          "moved_robots": [
-            "Blue",
-            "Green"
-          ],
-          "path": [
-            [
-              "Blue",
-              "bottom"
-            ],
-            [
-              "Blue",
-              "left"
-            ],
-            [
-              "Green",
-              "top"
-            ],
-            [
-              "Green",
-              "left"
-            ],
-            [
-              "Blue",
-              "top"
-            ],
-            [
-              "Green",
-              "bottom"
-            ],
-            [
-              "Green",
-              "right"
-            ],
-            [
-              "Blue",
-              "bottom"
-            ],
-            [
-              "Blue",
-              "bottom"
-            ]
-          ],
-          "states_expanded": 67747,
-          "steps": 9,
-          "target": "Red_Planet"
-        },
-        {
-          "end_robots": {
-            "Blue": [
-              0,
-              11
-            ],
-            "Green": [
-              11,
-              2
-            ],
-            "Red": [
-              15,
-              13
-            ],
-            "Yellow": [
-              12,
-              9
-            ]
-          },
-          "features": {
-            "changed_robot_total": 12,
-            "diagonal_reflections": 0,
-            "momentum_chain_collisions": 0,
-            "momentum_collisions": 3,
-            "quadrant_transitions": 4,
-            "robot_switches": 3,
-            "support_moves": 5,
-            "target_robot_moves": 4
-          },
-          "moved_robot_count": 3,
-          "moved_robots": [
-            "Blue",
-            "Red",
-            "Yellow"
-          ],
-          "path": [
-            [
-              "Red",
-              "left"
-            ],
-            [
-              "Blue",
-              "bottom"
-            ],
-            [
-              "Blue",
-              "right"
-            ],
-            [
-              "Blue",
-              "top"
-            ],
-            [
-              "Red",
-              "right"
-            ],
-            [
-              "Yellow",
-              "left"
-            ],
-            [
-              "Yellow",
-              "left"
-            ],
-            [
-              "Yellow",
-              "bottom"
-            ],
-            [
-              "Yellow",
-              "left"
-            ]
-          ],
-          "states_expanded": 84340,
-          "steps": 9,
-          "target": "Yellow_Star"
-        },
-        {
-          "end_robots": {
-            "Blue": [
-              5,
-              3
-            ],
-            "Green": [
-              5,
-              4
-            ],
-            "Red": [
-              15,
-              13
-            ],
-            "Yellow": [
-              12,
-              9
-            ]
-          },
-          "features": {
-            "changed_robot_total": 9,
-            "diagonal_reflections": 0,
-            "momentum_chain_collisions": 0,
-            "momentum_collisions": 1,
-            "quadrant_transitions": 4,
-            "robot_switches": 4,
-            "support_moves": 3,
-            "target_robot_moves": 6
-          },
-          "moved_robot_count": 2,
-          "moved_robots": [
-            "Blue",
-            "Green"
-          ],
-          "path": [
-            [
-              "Blue",
-              "bottom"
-            ],
-            [
-              "Blue",
-              "left"
-            ],
-            [
-              "Blue",
-              "bottom"
-            ],
-            [
-              "Green",
-              "left"
-            ],
-            [
-              "Green",
-              "top"
-            ],
-            [
-              "Blue",
-              "left"
-            ],
-            [
-              "Green",
-              "right"
-            ],
-            [
-              "Blue",
-              "top"
-            ],
-            [
-              "Blue",
-              "right"
-            ]
-          ],
-          "states_expanded": 19863,
-          "steps": 9,
-          "target": "Blue_Planet"
-        },
-        {
-          "end_robots": {
-            "Blue": [
-              1,
-              10
-            ],
-            "Green": [
-              5,
-              4
-            ],
-            "Red": [
-              0,
-              11
-            ],
-            "Yellow": [
-              1,
-              11
-            ]
-          },
-          "features": {
-            "changed_robot_total": 10,
-            "diagonal_reflections": 0,
-            "momentum_chain_collisions": 0,
-            "momentum_collisions": 3,
-            "quadrant_transitions": 5,
-            "robot_switches": 2,
-            "support_moves": 8,
-            "target_robot_moves": 1
-          },
-          "moved_robot_count": 3,
-          "moved_robots": [
-            "Blue",
-            "Red",
-            "Yellow"
-          ],
-          "path": [
-            [
-              "Red",
-              "top"
-            ],
-            [
-              "Red",
-              "left"
-            ],
-            [
-              "Yellow",
-              "right"
-            ],
-            [
-              "Yellow",
-              "top"
-            ],
-            [
-              "Yellow",
-              "left"
-            ],
-            [
-              "Yellow",
-              "top"
-            ],
-            [
-              "Yellow",
-              "right"
-            ],
-            [
-              "Yellow",
-              "top"
-            ],
-            [
-              "Blue",
-              "right"
-            ]
-          ],
-          "states_expanded": 35349,
-          "steps": 9,
-          "target": "Blue_Gear"
-        },
-        {
-          "end_robots": {
-            "Blue": [
-              1,
-              11
-            ],
-            "Green": [
-              5,
-              4
-            ],
-            "Red": [
-              1,
-              7
-            ],
-            "Yellow": [
-              1,
-              9
-            ]
-          },
-          "features": {
-            "changed_robot_total": 12,
-            "diagonal_reflections": 0,
-            "momentum_chain_collisions": 1,
-            "momentum_collisions": 4,
-            "quadrant_transitions": 5,
-            "robot_switches": 6,
-            "support_moves": 5,
-            "target_robot_moves": 4
-          },
-          "moved_robot_count": 2,
-          "moved_robots": [
-            "Red",
-            "Yellow"
-          ],
-          "path": [
-            [
-              "Yellow",
-              "bottom"
-            ],
-            [
-              "Yellow",
-              "left"
-            ],
-            [
-              "Red",
-              "bottom"
-            ],
-            [
-              "Yellow",
-              "top"
-            ],
-            [
-              "Red",
-              "left"
-            ],
-            [
-              "Yellow",
-              "right"
-            ],
-            [
-              "Red",
-              "top"
-            ],
-            [
-              "Red",
-              "right"
-            ],
-            [
-              "Yellow",
-              "left"
-            ]
-          ],
-          "states_expanded": 35300,
-          "steps": 9,
-          "target": "Red_Gear"
-        },
-        {
-          "end_robots": {
-            "Blue": [
-              1,
-              11
-            ],
-            "Green": [
-              5,
-              4
-            ],
-            "Red": [
-              15,
-              11
-            ],
-            "Yellow": [
-              9,
-              8
-            ]
-          },
-          "features": {
-            "changed_robot_total": 9,
-            "diagonal_reflections": 0,
-            "momentum_chain_collisions": 0,
-            "momentum_collisions": 2,
-            "quadrant_transitions": 3,
-            "robot_switches": 3,
-            "support_moves": 5,
-            "target_robot_moves": 3
-          },
-          "moved_robot_count": 2,
-          "moved_robots": [
-            "Red",
-            "Yellow"
-          ],
-          "path": [
-            [
-              "Red",
-              "top"
-            ],
-            [
-              "Red",
-              "right"
-            ],
-            [
-              "Red",
-              "bottom"
-            ],
-            [
-              "Red",
-              "right"
-            ],
-            [
-              "Yellow",
-              "right"
-            ],
-            [
-              "Yellow",
-              "bottom"
-            ],
-            [
-              "Red",
-              "left"
-            ],
-            [
-              "Yellow",
-              "top"
-            ]
-          ],
-          "states_expanded": 46294,
-          "steps": 8,
-          "target": "Yellow_Planet"
-        },
-        {
-          "end_robots": {
-            "Blue": [
-              1,
-              11
-            ],
-            "Green": [
-              5,
-              4
-            ],
-            "Red": [
-              4,
-              10
-            ],
-            "Yellow": [
-              4,
-              15
-            ]
-          },
-          "features": {
-            "changed_robot_total": 12,
-            "diagonal_reflections": 0,
-            "momentum_chain_collisions": 0,
-            "momentum_collisions": 3,
-            "quadrant_transitions": 6,
-            "robot_switches": 4,
-            "support_moves": 0,
-            "target_robot_moves": 9
-          },
-          "moved_robot_count": 2,
-          "moved_robots": [
-            "Red",
-            "Yellow"
-          ],
-          "path": [
-            [
-              "Red",
-              "left"
-            ],
-            [
-              "Red",
-              "top"
-            ],
-            [
-              "Yellow",
-              "left"
-            ],
-            [
-              "Red",
-              "top"
-            ],
-            [
-              "Red",
-              "left"
-            ],
-            [
-              "Red",
-              "bottom"
-            ],
-            [
-              "Yellow",
-              "top"
-            ],
-            [
-              "Red",
-              "right"
-            ],
-            [
-              "Red",
-              "right"
-            ]
-          ],
-          "states_expanded": 26985,
-          "steps": 9,
-          "target": "Wild_Vortex"
-        },
-        {
-          "end_robots": {
-            "Blue": [
-              1,
-              11
-            ],
-            "Green": [
-              5,
-              4
-            ],
-            "Red": [
-              4,
-              0
-            ],
-            "Yellow": [
-              14,
-              14
-            ]
-          },
-          "features": {
-            "changed_robot_total": 9,
-            "diagonal_reflections": 0,
-            "momentum_chain_collisions": 0,
-            "momentum_collisions": 1,
-            "quadrant_transitions": 4,
-            "robot_switches": 1,
-            "support_moves": 1,
-            "target_robot_moves": 8
-          },
-          "moved_robot_count": 2,
-          "moved_robots": [
-            "Red",
-            "Yellow"
-          ],
-          "path": [
-            [
-              "Red",
-              "left"
-            ],
-            [
-              "Yellow",
-              "left"
-            ],
-            [
-              "Yellow",
-              "bottom"
-            ],
-            [
-              "Yellow",
-              "left"
-            ],
-            [
-              "Yellow",
-              "bottom"
-            ],
-            [
-              "Yellow",
-              "right"
-            ],
-            [
-              "Yellow",
-              "bottom"
-            ],
-            [
-              "Yellow",
-              "left"
-            ],
-            [
-              "Yellow",
-              "top"
-            ]
-          ],
-          "states_expanded": 54680,
-          "steps": 9,
-          "target": "Yellow_Gear"
-        }
-      ],
-      "safe_transforms": [
-        [
-          0,
-          false
-        ],
-        [
-          0,
-          true
-        ],
-        [
-          1,
-          false
-        ],
-        [
-          1,
-          true
-        ],
-        [
-          2,
-          false
-        ],
-        [
-          2,
-          true
-        ],
-        [
-          3,
-          false
-        ],
-        [
-          3,
-          true
-        ]
-      ],
-      "target_order": [
-        "Blue_Moon",
-        "Yellow_Moon",
-        "Red_Moon",
-        "Green_Moon",
-        "Red_Star",
-        "Blue_Star",
-        "Green_Star",
-        "Green_Planet",
-        "Green_Gear",
-        "Red_Planet",
-        "Yellow_Star",
-        "Blue_Planet",
-        "Blue_Gear",
-        "Red_Gear",
-        "Yellow_Planet",
-        "Wild_Vortex",
-        "Yellow_Gear"
-      ],
-      "targets": {
-        "Blue_Gear": [
-          1,
-          10
-        ],
-        "Blue_Moon": [
-          7,
-          5
-        ],
-        "Blue_Planet": [
-          5,
-          3
-        ],
-        "Blue_Star": [
-          3,
-          0
-        ],
-        "Green_Gear": [
-          11,
-          7
-        ],
-        "Green_Moon": [
-          13,
-          1
-        ],
-        "Green_Planet": [
-          11,
-          13
-        ],
-        "Green_Star": [
-          15,
-          15
-        ],
-        "Red_Gear": [
-          1,
-          7
-        ],
-        "Red_Moon": [
-          9,
-          3
-        ],
-        "Red_Planet": [
-          13,
-          5
-        ],
-        "Red_Star": [
-          4,
-          14
-        ],
-        "Wild_Vortex": [
-          4,
-          10
-        ],
-        "Yellow_Gear": [
-          14,
-          14
-        ],
-        "Yellow_Moon": [
-          2,
-          14
-        ],
-        "Yellow_Planet": [
-          9,
-          8
-        ],
-        "Yellow_Star": [
-          12,
-          9
-        ]
-      },
-      "v_walls": [
-        [
-          0,
-          4
-        ],
-        [
-          0,
-          10
-        ],
-        [
-          1,
-          1
-        ],
-        [
-          1,
-          11
-        ],
-        [
-          2,
-          1
-        ],
-        [
-          2,
-          11
-        ],
-        [
-          2,
-          13
-        ],
-        [
-          3,
-          5
-        ],
-        [
-          3,
-          6
-        ],
-        [
-          3,
-          7
-        ],
-        [
-          5,
-          4
-        ],
-        [
-          5,
-          9
-        ],
-        [
-          5,
-          12
-        ],
-        [
-          6,
-          1
-        ],
-        [
-          6,
-          11
-        ],
-        [
-          7,
-          6
-        ],
-        [
-          7,
-          8
-        ],
-        [
-          7,
-          9
-        ],
-        [
-          8,
-          5
-        ],
-        [
-          8,
-          6
-        ],
-        [
-          8,
-          8
-        ],
-        [
-          9,
-          12
-        ],
-        [
-          9,
-          13
-        ],
-        [
-          10,
-          2
-        ],
-        [
-          12,
-          7
-        ],
-        [
-          12,
-          8
-        ],
-        [
-          13,
-          1
-        ],
-        [
-          13,
-          3
-        ],
-        [
-          13,
-          13
-        ],
-        [
-          14,
-          3
-        ],
-        [
-          14,
-          5
-        ],
-        [
-          14,
-          11
-        ],
-        [
-          14,
-          13
-        ],
-        [
-          15,
-          4
-        ],
-        [
-          15,
-          13
-        ]
-      ]
-    },
-    {
-      "certification": {
         "contract": "super_expert",
         "method": "transformed_exact_witness_dense_topology",
         "rounds": 17
@@ -32419,6 +30681,3881 @@
         [
           15,
           11
+        ]
+      ]
+    },
+    {
+      "certification": {
+        "contract": "v3_momentum",
+        "method": "exact_astar_or_bfs",
+        "rounds": 17
+      },
+      "certified": true,
+      "diagonal_walls": [],
+      "family": "momentum_symmetric_normal_seed",
+      "features": {
+        "average_robot_switches": 3.647,
+        "average_states_expanded": 59064.118,
+        "average_support_moves": 4.412,
+        "max_round_step_drop": 0,
+        "max_wall_cluster": 8,
+        "min_target_spacing": 2,
+        "round_average_steps": 9,
+        "round_max_steps": 9,
+        "round_min_moved_robots": 2,
+        "round_min_steps": 9,
+        "round_step_range": 0,
+        "symmetry_score": 0.5,
+        "target_quadrant_balance": 1,
+        "topology_signature": "be382d43944e9298",
+        "trajectory_signature": "740798fe074e9c10",
+        "wall_count": 66,
+        "wall_density": 0.1375,
+        "wall_quadrant_balance": 3
+      },
+      "grid_size": 16,
+      "h_walls": [
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          12
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          14
+        ],
+        [
+          3,
+          6
+        ],
+        [
+          3,
+          8
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          4,
+          15
+        ],
+        [
+          5,
+          9
+        ],
+        [
+          6,
+          1
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          6,
+          8
+        ],
+        [
+          6,
+          11
+        ],
+        [
+          8,
+          4
+        ],
+        [
+          8,
+          5
+        ],
+        [
+          8,
+          7
+        ],
+        [
+          8,
+          8
+        ],
+        [
+          8,
+          12
+        ],
+        [
+          9,
+          2
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          10,
+          11
+        ],
+        [
+          11,
+          0
+        ],
+        [
+          11,
+          7
+        ],
+        [
+          11,
+          9
+        ],
+        [
+          12,
+          1
+        ],
+        [
+          12,
+          4
+        ],
+        [
+          13,
+          14
+        ],
+        [
+          14,
+          6
+        ],
+        [
+          14,
+          11
+        ]
+      ],
+      "id": "momentum-certified-00",
+      "mode": "v3_momentum",
+      "robot_positions": {
+        "Blue": [
+          0,
+          11
+        ],
+        "Green": [
+          5,
+          6
+        ],
+        "Red": [
+          5,
+          2
+        ],
+        "Yellow": [
+          9,
+          7
+        ]
+      },
+      "rounds": [
+        {
+          "end_robots": {
+            "Blue": [
+              4,
+              0
+            ],
+            "Green": [
+              4,
+              1
+            ],
+            "Red": [
+              4,
+              4
+            ],
+            "Yellow": [
+              9,
+              7
+            ]
+          },
+          "features": {
+            "changed_robot_total": 13,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 4,
+            "quadrant_transitions": 3,
+            "robot_switches": 4,
+            "support_moves": 3,
+            "target_robot_moves": 6
+          },
+          "moved_robot_count": 3,
+          "moved_robots": [
+            "Blue",
+            "Green",
+            "Red"
+          ],
+          "path": [
+            [
+              "Red",
+              "bottom"
+            ],
+            [
+              "Blue",
+              "bottom"
+            ],
+            [
+              "Blue",
+              "left"
+            ],
+            [
+              "Red",
+              "top"
+            ],
+            [
+              "Red",
+              "right"
+            ],
+            [
+              "Red",
+              "top"
+            ],
+            [
+              "Green",
+              "left"
+            ],
+            [
+              "Red",
+              "top"
+            ],
+            [
+              "Red",
+              "left"
+            ]
+          ],
+          "states_expanded": 55120,
+          "steps": 9,
+          "target": "Red_Moon"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              4,
+              0
+            ],
+            "Green": [
+              4,
+              5
+            ],
+            "Red": [
+              6,
+              10
+            ],
+            "Yellow": [
+              13,
+              10
+            ]
+          },
+          "features": {
+            "changed_robot_total": 12,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 1,
+            "momentum_collisions": 5,
+            "quadrant_transitions": 6,
+            "robot_switches": 4,
+            "support_moves": 7,
+            "target_robot_moves": 2
+          },
+          "moved_robot_count": 3,
+          "moved_robots": [
+            "Green",
+            "Red",
+            "Yellow"
+          ],
+          "path": [
+            [
+              "Red",
+              "left"
+            ],
+            [
+              "Red",
+              "bottom"
+            ],
+            [
+              "Red",
+              "right"
+            ],
+            [
+              "Red",
+              "top"
+            ],
+            [
+              "Green",
+              "right"
+            ],
+            [
+              "Red",
+              "top"
+            ],
+            [
+              "Yellow",
+              "top"
+            ],
+            [
+              "Yellow",
+              "left"
+            ],
+            [
+              "Red",
+              "bottom"
+            ]
+          ],
+          "states_expanded": 95294,
+          "steps": 9,
+          "target": "Yellow_Moon"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              4,
+              0
+            ],
+            "Green": [
+              8,
+              0
+            ],
+            "Red": [
+              9,
+              2
+            ],
+            "Yellow": [
+              8,
+              3
+            ]
+          },
+          "features": {
+            "changed_robot_total": 10,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 3,
+            "quadrant_transitions": 6,
+            "robot_switches": 3,
+            "support_moves": 5,
+            "target_robot_moves": 4
+          },
+          "moved_robot_count": 3,
+          "moved_robots": [
+            "Green",
+            "Red",
+            "Yellow"
+          ],
+          "path": [
+            [
+              "Red",
+              "left"
+            ],
+            [
+              "Red",
+              "bottom"
+            ],
+            [
+              "Yellow",
+              "top"
+            ],
+            [
+              "Yellow",
+              "left"
+            ],
+            [
+              "Green",
+              "top"
+            ],
+            [
+              "Green",
+              "left"
+            ],
+            [
+              "Green",
+              "bottom"
+            ],
+            [
+              "Yellow",
+              "bottom"
+            ],
+            [
+              "Yellow",
+              "left"
+            ]
+          ],
+          "states_expanded": 164401,
+          "steps": 9,
+          "target": "Yellow_Star"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              4,
+              0
+            ],
+            "Green": [
+              6,
+              10
+            ],
+            "Red": [
+              6,
+              11
+            ],
+            "Yellow": [
+              8,
+              5
+            ]
+          },
+          "features": {
+            "changed_robot_total": 10,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 3,
+            "quadrant_transitions": 6,
+            "robot_switches": 5,
+            "support_moves": 3,
+            "target_robot_moves": 6
+          },
+          "moved_robot_count": 2,
+          "moved_robots": [
+            "Green",
+            "Red"
+          ],
+          "path": [
+            [
+              "Red",
+              "top"
+            ],
+            [
+              "Green",
+              "right"
+            ],
+            [
+              "Green",
+              "top"
+            ],
+            [
+              "Red",
+              "right"
+            ],
+            [
+              "Green",
+              "right"
+            ],
+            [
+              "Green",
+              "bottom"
+            ],
+            [
+              "Green",
+              "left"
+            ],
+            [
+              "Red",
+              "bottom"
+            ],
+            [
+              "Green",
+              "right"
+            ]
+          ],
+          "states_expanded": 52907,
+          "steps": 9,
+          "target": "Green_Moon"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              4,
+              0
+            ],
+            "Green": [
+              1,
+              13
+            ],
+            "Red": [
+              0,
+              13
+            ],
+            "Yellow": [
+              8,
+              5
+            ]
+          },
+          "features": {
+            "changed_robot_total": 9,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 1,
+            "quadrant_transitions": 6,
+            "robot_switches": 2,
+            "support_moves": 6,
+            "target_robot_moves": 3
+          },
+          "moved_robot_count": 2,
+          "moved_robots": [
+            "Green",
+            "Red"
+          ],
+          "path": [
+            [
+              "Green",
+              "bottom"
+            ],
+            [
+              "Red",
+              "left"
+            ],
+            [
+              "Red",
+              "bottom"
+            ],
+            [
+              "Red",
+              "right"
+            ],
+            [
+              "Red",
+              "bottom"
+            ],
+            [
+              "Red",
+              "right"
+            ],
+            [
+              "Red",
+              "top"
+            ],
+            [
+              "Green",
+              "right"
+            ],
+            [
+              "Green",
+              "top"
+            ]
+          ],
+          "states_expanded": 22260,
+          "steps": 9,
+          "target": "Green_Star"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              13,
+              14
+            ],
+            "Green": [
+              12,
+              14
+            ],
+            "Red": [
+              4,
+              15
+            ],
+            "Yellow": [
+              8,
+              5
+            ]
+          },
+          "features": {
+            "changed_robot_total": 9,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 3,
+            "quadrant_transitions": 5,
+            "robot_switches": 5,
+            "support_moves": 4,
+            "target_robot_moves": 5
+          },
+          "moved_robot_count": 3,
+          "moved_robots": [
+            "Blue",
+            "Green",
+            "Red"
+          ],
+          "path": [
+            [
+              "Red",
+              "right"
+            ],
+            [
+              "Green",
+              "right"
+            ],
+            [
+              "Green",
+              "bottom"
+            ],
+            [
+              "Blue",
+              "right"
+            ],
+            [
+              "Blue",
+              "bottom"
+            ],
+            [
+              "Green",
+              "left"
+            ],
+            [
+              "Red",
+              "bottom"
+            ],
+            [
+              "Green",
+              "right"
+            ],
+            [
+              "Green",
+              "bottom"
+            ]
+          ],
+          "states_expanded": 24157,
+          "steps": 9,
+          "target": "Green_Planet"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              2,
+              3
+            ],
+            "Green": [
+              7,
+              3
+            ],
+            "Red": [
+              4,
+              15
+            ],
+            "Yellow": [
+              8,
+              5
+            ]
+          },
+          "features": {
+            "changed_robot_total": 11,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 2,
+            "quadrant_transitions": 4,
+            "robot_switches": 5,
+            "support_moves": 6,
+            "target_robot_moves": 3
+          },
+          "moved_robot_count": 2,
+          "moved_robots": [
+            "Blue",
+            "Green"
+          ],
+          "path": [
+            [
+              "Blue",
+              "right"
+            ],
+            [
+              "Green",
+              "right"
+            ],
+            [
+              "Green",
+              "top"
+            ],
+            [
+              "Green",
+              "left"
+            ],
+            [
+              "Blue",
+              "top"
+            ],
+            [
+              "Green",
+              "bottom"
+            ],
+            [
+              "Blue",
+              "left"
+            ],
+            [
+              "Green",
+              "top"
+            ],
+            [
+              "Green",
+              "top"
+            ]
+          ],
+          "states_expanded": 14900,
+          "steps": 9,
+          "target": "Blue_Moon"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              0,
+              11
+            ],
+            "Green": [
+              1,
+              6
+            ],
+            "Red": [
+              1,
+              2
+            ],
+            "Yellow": [
+              5,
+              5
+            ]
+          },
+          "features": {
+            "changed_robot_total": 12,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 4,
+            "quadrant_transitions": 5,
+            "robot_switches": 6,
+            "support_moves": 5,
+            "target_robot_moves": 4
+          },
+          "moved_robot_count": 4,
+          "moved_robots": [
+            "Blue",
+            "Green",
+            "Red",
+            "Yellow"
+          ],
+          "path": [
+            [
+              "Red",
+              "left"
+            ],
+            [
+              "Blue",
+              "right"
+            ],
+            [
+              "Blue",
+              "top"
+            ],
+            [
+              "Green",
+              "right"
+            ],
+            [
+              "Green",
+              "top"
+            ],
+            [
+              "Red",
+              "right"
+            ],
+            [
+              "Green",
+              "top"
+            ],
+            [
+              "Yellow",
+              "top"
+            ],
+            [
+              "Green",
+              "left"
+            ]
+          ],
+          "states_expanded": 59906,
+          "steps": 9,
+          "target": "Green_Gear"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              0,
+              11
+            ],
+            "Green": [
+              9,
+              8
+            ],
+            "Red": [
+              9,
+              12
+            ],
+            "Yellow": [
+              5,
+              5
+            ]
+          },
+          "features": {
+            "changed_robot_total": 13,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 4,
+            "quadrant_transitions": 6,
+            "robot_switches": 3,
+            "support_moves": 0,
+            "target_robot_moves": 9
+          },
+          "moved_robot_count": 2,
+          "moved_robots": [
+            "Green",
+            "Red"
+          ],
+          "path": [
+            [
+              "Red",
+              "bottom"
+            ],
+            [
+              "Red",
+              "right"
+            ],
+            [
+              "Green",
+              "left"
+            ],
+            [
+              "Green",
+              "bottom"
+            ],
+            [
+              "Red",
+              "left"
+            ],
+            [
+              "Green",
+              "right"
+            ],
+            [
+              "Green",
+              "left"
+            ],
+            [
+              "Green",
+              "right"
+            ],
+            [
+              "Green",
+              "right"
+            ]
+          ],
+          "states_expanded": 92839,
+          "steps": 9,
+          "target": "Wild_Vortex"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              8,
+              5
+            ],
+            "Green": [
+              9,
+              2
+            ],
+            "Red": [
+              10,
+              6
+            ],
+            "Yellow": [
+              8,
+              6
+            ]
+          },
+          "features": {
+            "changed_robot_total": 12,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 5,
+            "quadrant_transitions": 5,
+            "robot_switches": 2,
+            "support_moves": 6,
+            "target_robot_moves": 3
+          },
+          "moved_robot_count": 3,
+          "moved_robots": [
+            "Blue",
+            "Red",
+            "Yellow"
+          ],
+          "path": [
+            [
+              "Red",
+              "left"
+            ],
+            [
+              "Red",
+              "left"
+            ],
+            [
+              "Blue",
+              "bottom"
+            ],
+            [
+              "Blue",
+              "left"
+            ],
+            [
+              "Blue",
+              "bottom"
+            ],
+            [
+              "Blue",
+              "right"
+            ],
+            [
+              "Yellow",
+              "bottom"
+            ],
+            [
+              "Yellow",
+              "right"
+            ],
+            [
+              "Yellow",
+              "bottom"
+            ]
+          ],
+          "states_expanded": 35470,
+          "steps": 9,
+          "target": "Yellow_Planet"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              8,
+              5
+            ],
+            "Green": [
+              12,
+              13
+            ],
+            "Red": [
+              14,
+              6
+            ],
+            "Yellow": [
+              10,
+              13
+            ]
+          },
+          "features": {
+            "changed_robot_total": 12,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 4,
+            "quadrant_transitions": 2,
+            "robot_switches": 3,
+            "support_moves": 7,
+            "target_robot_moves": 2
+          },
+          "moved_robot_count": 3,
+          "moved_robots": [
+            "Green",
+            "Red",
+            "Yellow"
+          ],
+          "path": [
+            [
+              "Red",
+              "bottom"
+            ],
+            [
+              "Green",
+              "right"
+            ],
+            [
+              "Green",
+              "bottom"
+            ],
+            [
+              "Green",
+              "right"
+            ],
+            [
+              "Yellow",
+              "bottom"
+            ],
+            [
+              "Yellow",
+              "right"
+            ],
+            [
+              "Green",
+              "top"
+            ],
+            [
+              "Green",
+              "top"
+            ],
+            [
+              "Green",
+              "top"
+            ]
+          ],
+          "states_expanded": 149168,
+          "steps": 9,
+          "target": "Yellow_Gear"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              15,
+              1
+            ],
+            "Green": [
+              15,
+              3
+            ],
+            "Red": [
+              14,
+              6
+            ],
+            "Yellow": [
+              11,
+              0
+            ]
+          },
+          "features": {
+            "changed_robot_total": 11,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 3,
+            "quadrant_transitions": 2,
+            "robot_switches": 5,
+            "support_moves": 5,
+            "target_robot_moves": 4
+          },
+          "moved_robot_count": 3,
+          "moved_robots": [
+            "Blue",
+            "Green",
+            "Yellow"
+          ],
+          "path": [
+            [
+              "Blue",
+              "left"
+            ],
+            [
+              "Yellow",
+              "bottom"
+            ],
+            [
+              "Green",
+              "left"
+            ],
+            [
+              "Green",
+              "bottom"
+            ],
+            [
+              "Yellow",
+              "left"
+            ],
+            [
+              "Blue",
+              "bottom"
+            ],
+            [
+              "Blue",
+              "right"
+            ],
+            [
+              "Blue",
+              "bottom"
+            ],
+            [
+              "Green",
+              "left"
+            ]
+          ],
+          "states_expanded": 80500,
+          "steps": 9,
+          "target": "Blue_Star"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              4,
+              1
+            ],
+            "Green": [
+              15,
+              4
+            ],
+            "Red": [
+              4,
+              0
+            ],
+            "Yellow": [
+              11,
+              0
+            ]
+          },
+          "features": {
+            "changed_robot_total": 10,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 3,
+            "quadrant_transitions": 4,
+            "robot_switches": 2,
+            "support_moves": 2,
+            "target_robot_moves": 7
+          },
+          "moved_robot_count": 2,
+          "moved_robots": [
+            "Blue",
+            "Red"
+          ],
+          "path": [
+            [
+              "Blue",
+              "right"
+            ],
+            [
+              "Blue",
+              "right"
+            ],
+            [
+              "Blue",
+              "top"
+            ],
+            [
+              "Blue",
+              "left"
+            ],
+            [
+              "Blue",
+              "bottom"
+            ],
+            [
+              "Blue",
+              "right"
+            ],
+            [
+              "Red",
+              "top"
+            ],
+            [
+              "Red",
+              "left"
+            ],
+            [
+              "Blue",
+              "left"
+            ]
+          ],
+          "states_expanded": 22654,
+          "steps": 9,
+          "target": "Blue_Planet"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              3,
+              14
+            ],
+            "Green": [
+              4,
+              14
+            ],
+            "Red": [
+              4,
+              12
+            ],
+            "Yellow": [
+              11,
+              0
+            ]
+          },
+          "features": {
+            "changed_robot_total": 10,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 1,
+            "momentum_collisions": 4,
+            "quadrant_transitions": 4,
+            "robot_switches": 4,
+            "support_moves": 8,
+            "target_robot_moves": 1
+          },
+          "moved_robot_count": 3,
+          "moved_robots": [
+            "Blue",
+            "Green",
+            "Red"
+          ],
+          "path": [
+            [
+              "Green",
+              "top"
+            ],
+            [
+              "Green",
+              "right"
+            ],
+            [
+              "Green",
+              "top"
+            ],
+            [
+              "Green",
+              "right"
+            ],
+            [
+              "Green",
+              "bottom"
+            ],
+            [
+              "Blue",
+              "right"
+            ],
+            [
+              "Red",
+              "right"
+            ],
+            [
+              "Blue",
+              "top"
+            ],
+            [
+              "Green",
+              "left"
+            ]
+          ],
+          "states_expanded": 13894,
+          "steps": 9,
+          "target": "Red_Star"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              15,
+              7
+            ],
+            "Green": [
+              3,
+              14
+            ],
+            "Red": [
+              15,
+              5
+            ],
+            "Yellow": [
+              11,
+              0
+            ]
+          },
+          "features": {
+            "changed_robot_total": 13,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 4,
+            "quadrant_transitions": 4,
+            "robot_switches": 4,
+            "support_moves": 2,
+            "target_robot_moves": 7
+          },
+          "moved_robot_count": 3,
+          "moved_robots": [
+            "Blue",
+            "Green",
+            "Red"
+          ],
+          "path": [
+            [
+              "Blue",
+              "right"
+            ],
+            [
+              "Blue",
+              "bottom"
+            ],
+            [
+              "Green",
+              "top"
+            ],
+            [
+              "Blue",
+              "left"
+            ],
+            [
+              "Red",
+              "bottom"
+            ],
+            [
+              "Blue",
+              "bottom"
+            ],
+            [
+              "Blue",
+              "left"
+            ],
+            [
+              "Blue",
+              "left"
+            ],
+            [
+              "Blue",
+              "left"
+            ]
+          ],
+          "states_expanded": 60303,
+          "steps": 9,
+          "target": "Blue_Gear"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              15,
+              7
+            ],
+            "Green": [
+              0,
+              10
+            ],
+            "Red": [
+              0,
+              9
+            ],
+            "Yellow": [
+              10,
+              0
+            ]
+          },
+          "features": {
+            "changed_robot_total": 10,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 2,
+            "quadrant_transitions": 2,
+            "robot_switches": 3,
+            "support_moves": 4,
+            "target_robot_moves": 5
+          },
+          "moved_robot_count": 3,
+          "moved_robots": [
+            "Green",
+            "Red",
+            "Yellow"
+          ],
+          "path": [
+            [
+              "Red",
+              "top"
+            ],
+            [
+              "Red",
+              "left"
+            ],
+            [
+              "Green",
+              "left"
+            ],
+            [
+              "Green",
+              "top"
+            ],
+            [
+              "Green",
+              "right"
+            ],
+            [
+              "Yellow",
+              "top"
+            ],
+            [
+              "Red",
+              "right"
+            ],
+            [
+              "Red",
+              "top"
+            ],
+            [
+              "Red",
+              "right"
+            ]
+          ],
+          "states_expanded": 21726,
+          "steps": 9,
+          "target": "Red_Planet"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              15,
+              7
+            ],
+            "Green": [
+              0,
+              10
+            ],
+            "Red": [
+              6,
+              4
+            ],
+            "Yellow": [
+              5,
+              4
+            ]
+          },
+          "features": {
+            "changed_robot_total": 9,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 1,
+            "quadrant_transitions": 6,
+            "robot_switches": 2,
+            "support_moves": 2,
+            "target_robot_moves": 7
+          },
+          "moved_robot_count": 2,
+          "moved_robots": [
+            "Red",
+            "Yellow"
+          ],
+          "path": [
+            [
+              "Red",
+              "left"
+            ],
+            [
+              "Red",
+              "bottom"
+            ],
+            [
+              "Red",
+              "left"
+            ],
+            [
+              "Red",
+              "top"
+            ],
+            [
+              "Red",
+              "right"
+            ],
+            [
+              "Red",
+              "bottom"
+            ],
+            [
+              "Yellow",
+              "top"
+            ],
+            [
+              "Yellow",
+              "right"
+            ],
+            [
+              "Red",
+              "top"
+            ]
+          ],
+          "states_expanded": 38591,
+          "steps": 9,
+          "target": "Red_Gear"
+        }
+      ],
+      "safe_transforms": [
+        [
+          0,
+          false
+        ],
+        [
+          0,
+          true
+        ],
+        [
+          1,
+          false
+        ],
+        [
+          1,
+          true
+        ],
+        [
+          2,
+          false
+        ],
+        [
+          2,
+          true
+        ],
+        [
+          3,
+          false
+        ],
+        [
+          3,
+          true
+        ]
+      ],
+      "target_order": [
+        "Red_Moon",
+        "Yellow_Moon",
+        "Yellow_Star",
+        "Green_Moon",
+        "Green_Star",
+        "Green_Planet",
+        "Blue_Moon",
+        "Green_Gear",
+        "Wild_Vortex",
+        "Yellow_Planet",
+        "Yellow_Gear",
+        "Blue_Star",
+        "Blue_Planet",
+        "Red_Star",
+        "Blue_Gear",
+        "Red_Planet",
+        "Red_Gear"
+      ],
+      "targets": {
+        "Blue_Gear": [
+          15,
+          7
+        ],
+        "Blue_Moon": [
+          2,
+          3
+        ],
+        "Blue_Planet": [
+          4,
+          1
+        ],
+        "Blue_Star": [
+          15,
+          1
+        ],
+        "Green_Gear": [
+          1,
+          6
+        ],
+        "Green_Moon": [
+          6,
+          10
+        ],
+        "Green_Planet": [
+          12,
+          14
+        ],
+        "Green_Star": [
+          1,
+          13
+        ],
+        "Red_Gear": [
+          6,
+          4
+        ],
+        "Red_Moon": [
+          4,
+          4
+        ],
+        "Red_Planet": [
+          0,
+          9
+        ],
+        "Red_Star": [
+          4,
+          12
+        ],
+        "Wild_Vortex": [
+          9,
+          8
+        ],
+        "Yellow_Gear": [
+          10,
+          13
+        ],
+        "Yellow_Moon": [
+          13,
+          10
+        ],
+        "Yellow_Planet": [
+          8,
+          6
+        ],
+        "Yellow_Star": [
+          8,
+          3
+        ]
+      },
+      "v_walls": [
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          10
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          11
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          11
+        ],
+        [
+          2,
+          13
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          3,
+          6
+        ],
+        [
+          3,
+          7
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          5,
+          9
+        ],
+        [
+          5,
+          12
+        ],
+        [
+          6,
+          1
+        ],
+        [
+          6,
+          11
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          7,
+          8
+        ],
+        [
+          7,
+          9
+        ],
+        [
+          8,
+          5
+        ],
+        [
+          8,
+          6
+        ],
+        [
+          8,
+          8
+        ],
+        [
+          9,
+          12
+        ],
+        [
+          9,
+          13
+        ],
+        [
+          10,
+          2
+        ],
+        [
+          12,
+          7
+        ],
+        [
+          12,
+          8
+        ],
+        [
+          13,
+          1
+        ],
+        [
+          13,
+          3
+        ],
+        [
+          13,
+          13
+        ],
+        [
+          14,
+          3
+        ],
+        [
+          14,
+          5
+        ],
+        [
+          14,
+          11
+        ],
+        [
+          14,
+          13
+        ],
+        [
+          15,
+          4
+        ],
+        [
+          15,
+          13
+        ]
+      ]
+    },
+    {
+      "certification": {
+        "contract": "chaos",
+        "method": "exact_astar_or_bfs",
+        "rounds": 17
+      },
+      "certified": true,
+      "diagonal_walls": [
+        {
+          "cell": [
+            2,
+            1
+          ],
+          "color": "Green",
+          "type": "\\"
+        },
+        {
+          "cell": [
+            13,
+            4
+          ],
+          "color": "Green",
+          "type": "/"
+        },
+        {
+          "cell": [
+            15,
+            20
+          ],
+          "color": "Blue",
+          "type": "/"
+        },
+        {
+          "cell": [
+            16,
+            2
+          ],
+          "color": "Yellow",
+          "type": "/"
+        },
+        {
+          "cell": [
+            17,
+            3
+          ],
+          "color": "Green",
+          "type": "\\"
+        },
+        {
+          "cell": [
+            19,
+            9
+          ],
+          "color": "Green",
+          "type": "\\"
+        },
+        {
+          "cell": [
+            22,
+            7
+          ],
+          "color": "Yellow",
+          "type": "\\"
+        },
+        {
+          "cell": [
+            23,
+            2
+          ],
+          "color": "Blue",
+          "type": "\\"
+        }
+      ],
+      "family": "chaos_symmetric_random",
+      "features": {
+        "average_robot_switches": 2.235,
+        "average_states_expanded": 39248.412,
+        "average_support_moves": 2.706,
+        "max_round_step_drop": 0,
+        "max_wall_cluster": 8,
+        "min_target_spacing": 2,
+        "round_average_steps": 8,
+        "round_max_steps": 8,
+        "round_min_moved_robots": 1,
+        "round_min_steps": 8,
+        "round_step_range": 0,
+        "symmetry_score": 0.018,
+        "target_quadrant_balance": 11,
+        "topology_signature": "9181b366b9f18e94",
+        "trajectory_signature": "d487905c493d61bb",
+        "wall_count": 112,
+        "wall_density": 0.0933,
+        "wall_quadrant_balance": 44
+      },
+      "grid_size": 25,
+      "h_walls": [
+        [
+          0,
+          19
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          1,
+          16
+        ],
+        [
+          1,
+          17
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          2,
+          20
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          3,
+          10
+        ],
+        [
+          3,
+          12
+        ],
+        [
+          3,
+          13
+        ],
+        [
+          4,
+          18
+        ],
+        [
+          5,
+          21
+        ],
+        [
+          7,
+          16
+        ],
+        [
+          8,
+          10
+        ],
+        [
+          8,
+          16
+        ],
+        [
+          9,
+          6
+        ],
+        [
+          9,
+          8
+        ],
+        [
+          9,
+          21
+        ],
+        [
+          10,
+          2
+        ],
+        [
+          10,
+          15
+        ],
+        [
+          10,
+          16
+        ],
+        [
+          11,
+          2
+        ],
+        [
+          11,
+          9
+        ],
+        [
+          12,
+          15
+        ],
+        [
+          12,
+          22
+        ],
+        [
+          13,
+          8
+        ],
+        [
+          13,
+          9
+        ],
+        [
+          13,
+          22
+        ],
+        [
+          14,
+          3
+        ],
+        [
+          14,
+          16
+        ],
+        [
+          14,
+          18
+        ],
+        [
+          15,
+          8
+        ],
+        [
+          15,
+          14
+        ],
+        [
+          16,
+          8
+        ],
+        [
+          18,
+          3
+        ],
+        [
+          19,
+          6
+        ],
+        [
+          20,
+          11
+        ],
+        [
+          20,
+          12
+        ],
+        [
+          20,
+          14
+        ],
+        [
+          20,
+          15
+        ],
+        [
+          20,
+          19
+        ],
+        [
+          20,
+          23
+        ],
+        [
+          21,
+          4
+        ],
+        [
+          21,
+          17
+        ],
+        [
+          21,
+          19
+        ],
+        [
+          21,
+          20
+        ],
+        [
+          22,
+          7
+        ],
+        [
+          22,
+          8
+        ],
+        [
+          22,
+          16
+        ],
+        [
+          22,
+          19
+        ],
+        [
+          23,
+          5
+        ]
+      ],
+      "id": "chaos-certified-00",
+      "mode": "chaos",
+      "portals": [
+        {
+          "cell": [
+            0,
+            20
+          ],
+          "color": "White",
+          "exit": [
+            10,
+            4
+          ]
+        },
+        {
+          "cell": [
+            0,
+            21
+          ],
+          "color": "Green",
+          "exit": [
+            4,
+            12
+          ]
+        },
+        {
+          "cell": [
+            1,
+            13
+          ],
+          "color": "Yellow",
+          "exit": [
+            23,
+            14
+          ]
+        },
+        {
+          "cell": [
+            1,
+            19
+          ],
+          "color": "Red",
+          "exit": [
+            10,
+            12
+          ]
+        },
+        {
+          "cell": [
+            3,
+            21
+          ],
+          "color": "Blue",
+          "exit": [
+            12,
+            7
+          ]
+        },
+        {
+          "cell": [
+            4,
+            12
+          ],
+          "color": "Green",
+          "exit": [
+            0,
+            21
+          ]
+        },
+        {
+          "cell": [
+            10,
+            4
+          ],
+          "color": "White",
+          "exit": [
+            0,
+            20
+          ]
+        },
+        {
+          "cell": [
+            10,
+            12
+          ],
+          "color": "Red",
+          "exit": [
+            1,
+            19
+          ]
+        },
+        {
+          "cell": [
+            12,
+            7
+          ],
+          "color": "Blue",
+          "exit": [
+            3,
+            21
+          ]
+        },
+        {
+          "cell": [
+            23,
+            14
+          ],
+          "color": "Yellow",
+          "exit": [
+            1,
+            13
+          ]
+        }
+      ],
+      "robot_positions": {
+        "Blue": [
+          9,
+          23
+        ],
+        "Green": [
+          11,
+          4
+        ],
+        "Red": [
+          8,
+          8
+        ],
+        "Yellow": [
+          1,
+          4
+        ]
+      },
+      "rounds": [
+        {
+          "end_robots": {
+            "Blue": [
+              9,
+              23
+            ],
+            "Green": [
+              11,
+              4
+            ],
+            "Red": [
+              24,
+              18
+            ],
+            "Yellow": [
+              24,
+              12
+            ]
+          },
+          "features": {
+            "changed_robot_total": 10,
+            "chaos_events": 4,
+            "chaos_sand_stops": 2,
+            "chaos_teleports": 0,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 2,
+            "quadrant_transitions": 4,
+            "robot_switches": 1,
+            "support_moves": 3,
+            "target_robot_moves": 5
+          },
+          "moved_robot_count": 2,
+          "moved_robots": [
+            "Red",
+            "Yellow"
+          ],
+          "path": [
+            [
+              "Red",
+              "left"
+            ],
+            [
+              "Red",
+              "bottom"
+            ],
+            [
+              "Red",
+              "right"
+            ],
+            [
+              "Yellow",
+              "left"
+            ],
+            [
+              "Yellow",
+              "bottom"
+            ],
+            [
+              "Yellow",
+              "right"
+            ],
+            [
+              "Yellow",
+              "right"
+            ],
+            [
+              "Yellow",
+              "right"
+            ]
+          ],
+          "states_expanded": 70601,
+          "steps": 8,
+          "target": "Yellow_Moon"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              9,
+              23
+            ],
+            "Green": [
+              4,
+              24
+            ],
+            "Red": [
+              6,
+              24
+            ],
+            "Yellow": [
+              24,
+              7
+            ]
+          },
+          "features": {
+            "changed_robot_total": 11,
+            "chaos_events": 5,
+            "chaos_sand_stops": 1,
+            "chaos_teleports": 1,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 3,
+            "quadrant_transitions": 3,
+            "robot_switches": 1,
+            "support_moves": 5,
+            "target_robot_moves": 3
+          },
+          "moved_robot_count": 2,
+          "moved_robots": [
+            "Green",
+            "Red"
+          ],
+          "path": [
+            [
+              "Red",
+              "left"
+            ],
+            [
+              "Red",
+              "top"
+            ],
+            [
+              "Red",
+              "right"
+            ],
+            [
+              "Green",
+              "top"
+            ],
+            [
+              "Green",
+              "bottom"
+            ],
+            [
+              "Green",
+              "right"
+            ],
+            [
+              "Green",
+              "bottom"
+            ],
+            [
+              "Green",
+              "bottom"
+            ]
+          ],
+          "states_expanded": 66521,
+          "steps": 8,
+          "target": "Red_Moon"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              23,
+              24
+            ],
+            "Green": [
+              22,
+              24
+            ],
+            "Red": [
+              24,
+              24
+            ],
+            "Yellow": [
+              22,
+              23
+            ]
+          },
+          "features": {
+            "changed_robot_total": 9,
+            "chaos_events": 6,
+            "chaos_sand_stops": 1,
+            "chaos_teleports": 0,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 1,
+            "momentum_collisions": 5,
+            "quadrant_transitions": 4,
+            "robot_switches": 5,
+            "support_moves": 5,
+            "target_robot_moves": 3
+          },
+          "moved_robot_count": 4,
+          "moved_robots": [
+            "Blue",
+            "Green",
+            "Red",
+            "Yellow"
+          ],
+          "path": [
+            [
+              "Red",
+              "bottom"
+            ],
+            [
+              "Red",
+              "left"
+            ],
+            [
+              "Blue",
+              "right"
+            ],
+            [
+              "Yellow",
+              "right"
+            ],
+            [
+              "Blue",
+              "bottom"
+            ],
+            [
+              "Green",
+              "bottom"
+            ],
+            [
+              "Yellow",
+              "top"
+            ],
+            [
+              "Yellow",
+              "right"
+            ]
+          ],
+          "states_expanded": 64770,
+          "steps": 8,
+          "target": "Yellow_Star"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              1,
+              24
+            ],
+            "Green": [
+              0,
+              24
+            ],
+            "Red": [
+              2,
+              17
+            ],
+            "Yellow": [
+              4,
+              18
+            ]
+          },
+          "features": {
+            "changed_robot_total": 8,
+            "chaos_events": 6,
+            "chaos_sand_stops": 0,
+            "chaos_teleports": 0,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 0,
+            "momentum_chain_collisions": 2,
+            "momentum_collisions": 6,
+            "quadrant_transitions": 4,
+            "robot_switches": 3,
+            "support_moves": 4,
+            "target_robot_moves": 4
+          },
+          "moved_robot_count": 4,
+          "moved_robots": [
+            "Blue",
+            "Green",
+            "Red",
+            "Yellow"
+          ],
+          "path": [
+            [
+              "Green",
+              "top"
+            ],
+            [
+              "Blue",
+              "top"
+            ],
+            [
+              "Red",
+              "top"
+            ],
+            [
+              "Red",
+              "left"
+            ],
+            [
+              "Yellow",
+              "right"
+            ],
+            [
+              "Yellow",
+              "top"
+            ],
+            [
+              "Yellow",
+              "left"
+            ],
+            [
+              "Yellow",
+              "bottom"
+            ]
+          ],
+          "states_expanded": 24665,
+          "steps": 8,
+          "target": "Yellow_Planet"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              3,
+              0
+            ],
+            "Green": [
+              7,
+              0
+            ],
+            "Red": [
+              2,
+              17
+            ],
+            "Yellow": [
+              4,
+              18
+            ]
+          },
+          "features": {
+            "changed_robot_total": 10,
+            "chaos_events": 4,
+            "chaos_sand_stops": 0,
+            "chaos_teleports": 2,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 2,
+            "quadrant_transitions": 2,
+            "robot_switches": 2,
+            "support_moves": 4,
+            "target_robot_moves": 4
+          },
+          "moved_robot_count": 2,
+          "moved_robots": [
+            "Blue",
+            "Green"
+          ],
+          "path": [
+            [
+              "Blue",
+              "left"
+            ],
+            [
+              "Blue",
+              "top"
+            ],
+            [
+              "Blue",
+              "left"
+            ],
+            [
+              "Green",
+              "left"
+            ],
+            [
+              "Green",
+              "bottom"
+            ],
+            [
+              "Green",
+              "left"
+            ],
+            [
+              "Green",
+              "top"
+            ],
+            [
+              "Blue",
+              "bottom"
+            ]
+          ],
+          "states_expanded": 21863,
+          "steps": 8,
+          "target": "Green_Moon"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              4,
+              21
+            ],
+            "Green": [
+              19,
+              0
+            ],
+            "Red": [
+              2,
+              17
+            ],
+            "Yellow": [
+              4,
+              24
+            ]
+          },
+          "features": {
+            "changed_robot_total": 14,
+            "chaos_events": 6,
+            "chaos_sand_stops": 0,
+            "chaos_teleports": 0,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 6,
+            "quadrant_transitions": 4,
+            "robot_switches": 0,
+            "support_moves": 0,
+            "target_robot_moves": 8
+          },
+          "moved_robot_count": 1,
+          "moved_robots": [
+            "Blue"
+          ],
+          "path": [
+            [
+              "Blue",
+              "bottom"
+            ],
+            [
+              "Blue",
+              "bottom"
+            ],
+            [
+              "Blue",
+              "bottom"
+            ],
+            [
+              "Blue",
+              "bottom"
+            ],
+            [
+              "Blue",
+              "right"
+            ],
+            [
+              "Blue",
+              "top"
+            ],
+            [
+              "Blue",
+              "right"
+            ],
+            [
+              "Blue",
+              "right"
+            ]
+          ],
+          "states_expanded": 23823,
+          "steps": 8,
+          "target": "Blue_Moon"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              0,
+              17
+            ],
+            "Green": [
+              0,
+              11
+            ],
+            "Red": [
+              2,
+              17
+            ],
+            "Yellow": [
+              10,
+              8
+            ]
+          },
+          "features": {
+            "changed_robot_total": 13,
+            "chaos_events": 7,
+            "chaos_sand_stops": 1,
+            "chaos_teleports": 1,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 2,
+            "momentum_chain_collisions": 1,
+            "momentum_collisions": 5,
+            "quadrant_transitions": 2,
+            "robot_switches": 4,
+            "support_moves": 4,
+            "target_robot_moves": 4
+          },
+          "moved_robot_count": 3,
+          "moved_robots": [
+            "Blue",
+            "Green",
+            "Yellow"
+          ],
+          "path": [
+            [
+              "Green",
+              "top"
+            ],
+            [
+              "Yellow",
+              "left"
+            ],
+            [
+              "Yellow",
+              "left"
+            ],
+            [
+              "Yellow",
+              "left"
+            ],
+            [
+              "Blue",
+              "top"
+            ],
+            [
+              "Blue",
+              "left"
+            ],
+            [
+              "Yellow",
+              "top"
+            ],
+            [
+              "Green",
+              "right"
+            ]
+          ],
+          "states_expanded": 44209,
+          "steps": 8,
+          "target": "Yellow_Gear"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              13,
+              24
+            ],
+            "Green": [
+              0,
+              11
+            ],
+            "Red": [
+              2,
+              17
+            ],
+            "Yellow": [
+              13,
+              20
+            ]
+          },
+          "features": {
+            "changed_robot_total": 10,
+            "chaos_events": 2,
+            "chaos_sand_stops": 0,
+            "chaos_teleports": 0,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 2,
+            "quadrant_transitions": 3,
+            "robot_switches": 1,
+            "support_moves": 0,
+            "target_robot_moves": 8
+          },
+          "moved_robot_count": 2,
+          "moved_robots": [
+            "Blue",
+            "Yellow"
+          ],
+          "path": [
+            [
+              "Blue",
+              "bottom"
+            ],
+            [
+              "Blue",
+              "right"
+            ],
+            [
+              "Blue",
+              "bottom"
+            ],
+            [
+              "Blue",
+              "left"
+            ],
+            [
+              "Blue",
+              "top"
+            ],
+            [
+              "Yellow",
+              "bottom"
+            ],
+            [
+              "Yellow",
+              "right"
+            ],
+            [
+              "Yellow",
+              "right"
+            ]
+          ],
+          "states_expanded": 24737,
+          "steps": 8,
+          "target": "Wild_Vortex"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              11,
+              18
+            ],
+            "Green": [
+              0,
+              11
+            ],
+            "Red": [
+              2,
+              17
+            ],
+            "Yellow": [
+              11,
+              14
+            ]
+          },
+          "features": {
+            "changed_robot_total": 12,
+            "chaos_events": 6,
+            "chaos_sand_stops": 1,
+            "chaos_teleports": 0,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 5,
+            "quadrant_transitions": 4,
+            "robot_switches": 5,
+            "support_moves": 5,
+            "target_robot_moves": 3
+          },
+          "moved_robot_count": 3,
+          "moved_robots": [
+            "Blue",
+            "Red",
+            "Yellow"
+          ],
+          "path": [
+            [
+              "Blue",
+              "left"
+            ],
+            [
+              "Red",
+              "bottom"
+            ],
+            [
+              "Red",
+              "right"
+            ],
+            [
+              "Red",
+              "top"
+            ],
+            [
+              "Blue",
+              "top"
+            ],
+            [
+              "Red",
+              "left"
+            ],
+            [
+              "Yellow",
+              "top"
+            ],
+            [
+              "Blue",
+              "left"
+            ]
+          ],
+          "states_expanded": 49144,
+          "steps": 8,
+          "target": "Blue_Star"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              10,
+              24
+            ],
+            "Green": [
+              16,
+              24
+            ],
+            "Red": [
+              2,
+              17
+            ],
+            "Yellow": [
+              13,
+              14
+            ]
+          },
+          "features": {
+            "changed_robot_total": 10,
+            "chaos_events": 5,
+            "chaos_sand_stops": 2,
+            "chaos_teleports": 1,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 2,
+            "quadrant_transitions": 3,
+            "robot_switches": 4,
+            "support_moves": 4,
+            "target_robot_moves": 4
+          },
+          "moved_robot_count": 3,
+          "moved_robots": [
+            "Blue",
+            "Green",
+            "Yellow"
+          ],
+          "path": [
+            [
+              "Blue",
+              "top"
+            ],
+            [
+              "Blue",
+              "right"
+            ],
+            [
+              "Green",
+              "right"
+            ],
+            [
+              "Green",
+              "right"
+            ],
+            [
+              "Yellow",
+              "bottom"
+            ],
+            [
+              "Green",
+              "bottom"
+            ],
+            [
+              "Green",
+              "right"
+            ],
+            [
+              "Blue",
+              "bottom"
+            ]
+          ],
+          "states_expanded": 19751,
+          "steps": 8,
+          "target": "Green_Star"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              13,
+              24
+            ],
+            "Green": [
+              16,
+              24
+            ],
+            "Red": [
+              0,
+              9
+            ],
+            "Yellow": [
+              13,
+              14
+            ]
+          },
+          "features": {
+            "changed_robot_total": 11,
+            "chaos_events": 5,
+            "chaos_sand_stops": 2,
+            "chaos_teleports": 0,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 0,
+            "momentum_chain_collisions": 1,
+            "momentum_collisions": 3,
+            "quadrant_transitions": 4,
+            "robot_switches": 2,
+            "support_moves": 1,
+            "target_robot_moves": 7
+          },
+          "moved_robot_count": 2,
+          "moved_robots": [
+            "Blue",
+            "Red"
+          ],
+          "path": [
+            [
+              "Red",
+              "bottom"
+            ],
+            [
+              "Red",
+              "right"
+            ],
+            [
+              "Red",
+              "top"
+            ],
+            [
+              "Blue",
+              "bottom"
+            ],
+            [
+              "Red",
+              "left"
+            ],
+            [
+              "Red",
+              "top"
+            ],
+            [
+              "Red",
+              "right"
+            ],
+            [
+              "Red",
+              "top"
+            ]
+          ],
+          "states_expanded": 62292,
+          "steps": 8,
+          "target": "Red_Star"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              15,
+              13
+            ],
+            "Green": [
+              16,
+              24
+            ],
+            "Red": [
+              21,
+              4
+            ],
+            "Yellow": [
+              12,
+              14
+            ]
+          },
+          "features": {
+            "changed_robot_total": 9,
+            "chaos_events": 5,
+            "chaos_sand_stops": 2,
+            "chaos_teleports": 0,
+            "diagonal_reflections": 2,
+            "final_move_momentum_collisions": 0,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 1,
+            "quadrant_transitions": 3,
+            "robot_switches": 2,
+            "support_moves": 5,
+            "target_robot_moves": 3
+          },
+          "moved_robot_count": 3,
+          "moved_robots": [
+            "Blue",
+            "Red",
+            "Yellow"
+          ],
+          "path": [
+            [
+              "Red",
+              "bottom"
+            ],
+            [
+              "Red",
+              "left"
+            ],
+            [
+              "Red",
+              "bottom"
+            ],
+            [
+              "Red",
+              "left"
+            ],
+            [
+              "Yellow",
+              "top"
+            ],
+            [
+              "Blue",
+              "left"
+            ],
+            [
+              "Blue",
+              "left"
+            ],
+            [
+              "Blue",
+              "right"
+            ]
+          ],
+          "states_expanded": 58234,
+          "steps": 8,
+          "target": "Blue_Planet"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              15,
+              9
+            ],
+            "Green": [
+              17,
+              9
+            ],
+            "Red": [
+              21,
+              4
+            ],
+            "Yellow": [
+              12,
+              14
+            ]
+          },
+          "features": {
+            "changed_robot_total": 9,
+            "chaos_events": 4,
+            "chaos_sand_stops": 2,
+            "chaos_teleports": 0,
+            "diagonal_reflections": 1,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 1,
+            "quadrant_transitions": 4,
+            "robot_switches": 2,
+            "support_moves": 1,
+            "target_robot_moves": 7
+          },
+          "moved_robot_count": 2,
+          "moved_robots": [
+            "Blue",
+            "Green"
+          ],
+          "path": [
+            [
+              "Blue",
+              "bottom"
+            ],
+            [
+              "Blue",
+              "right"
+            ],
+            [
+              "Blue",
+              "top"
+            ],
+            [
+              "Blue",
+              "left"
+            ],
+            [
+              "Blue",
+              "bottom"
+            ],
+            [
+              "Blue",
+              "left"
+            ],
+            [
+              "Green",
+              "left"
+            ],
+            [
+              "Blue",
+              "bottom"
+            ]
+          ],
+          "states_expanded": 20185,
+          "steps": 8,
+          "target": "Blue_Gear"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              21,
+              17
+            ],
+            "Green": [
+              24,
+              9
+            ],
+            "Red": [
+              18,
+              17
+            ],
+            "Yellow": [
+              12,
+              14
+            ]
+          },
+          "features": {
+            "changed_robot_total": 9,
+            "chaos_events": 5,
+            "chaos_sand_stops": 2,
+            "chaos_teleports": 0,
+            "diagonal_reflections": 2,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 1,
+            "quadrant_transitions": 4,
+            "robot_switches": 3,
+            "support_moves": 2,
+            "target_robot_moves": 6
+          },
+          "moved_robot_count": 3,
+          "moved_robots": [
+            "Blue",
+            "Green",
+            "Red"
+          ],
+          "path": [
+            [
+              "Red",
+              "top"
+            ],
+            [
+              "Red",
+              "bottom"
+            ],
+            [
+              "Red",
+              "left"
+            ],
+            [
+              "Red",
+              "top"
+            ],
+            [
+              "Red",
+              "left"
+            ],
+            [
+              "Green",
+              "bottom"
+            ],
+            [
+              "Blue",
+              "bottom"
+            ],
+            [
+              "Red",
+              "bottom"
+            ]
+          ],
+          "states_expanded": 43180,
+          "steps": 8,
+          "target": "Red_Planet"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              21,
+              17
+            ],
+            "Green": [
+              14,
+              14
+            ],
+            "Red": [
+              18,
+              17
+            ],
+            "Yellow": [
+              15,
+              14
+            ]
+          },
+          "features": {
+            "changed_robot_total": 8,
+            "chaos_events": 5,
+            "chaos_sand_stops": 3,
+            "chaos_teleports": 1,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 1,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 1,
+            "quadrant_transitions": 3,
+            "robot_switches": 2,
+            "support_moves": 1,
+            "target_robot_moves": 7
+          },
+          "moved_robot_count": 2,
+          "moved_robots": [
+            "Green",
+            "Yellow"
+          ],
+          "path": [
+            [
+              "Green",
+              "left"
+            ],
+            [
+              "Green",
+              "left"
+            ],
+            [
+              "Green",
+              "top"
+            ],
+            [
+              "Green",
+              "right"
+            ],
+            [
+              "Green",
+              "right"
+            ],
+            [
+              "Yellow",
+              "bottom"
+            ],
+            [
+              "Green",
+              "bottom"
+            ],
+            [
+              "Green",
+              "bottom"
+            ]
+          ],
+          "states_expanded": 33760,
+          "steps": 8,
+          "target": "Green_Planet"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              21,
+              17
+            ],
+            "Green": [
+              23,
+              9
+            ],
+            "Red": [
+              24,
+              24
+            ],
+            "Yellow": [
+              15,
+              14
+            ]
+          },
+          "features": {
+            "changed_robot_total": 8,
+            "chaos_events": 2,
+            "chaos_sand_stops": 1,
+            "chaos_teleports": 0,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 0,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 1,
+            "quadrant_transitions": 3,
+            "robot_switches": 1,
+            "support_moves": 2,
+            "target_robot_moves": 6
+          },
+          "moved_robot_count": 2,
+          "moved_robots": [
+            "Green",
+            "Red"
+          ],
+          "path": [
+            [
+              "Red",
+              "right"
+            ],
+            [
+              "Red",
+              "bottom"
+            ],
+            [
+              "Green",
+              "top"
+            ],
+            [
+              "Green",
+              "right"
+            ],
+            [
+              "Green",
+              "top"
+            ],
+            [
+              "Green",
+              "right"
+            ],
+            [
+              "Green",
+              "bottom"
+            ],
+            [
+              "Green",
+              "left"
+            ]
+          ],
+          "states_expanded": 20706,
+          "steps": 8,
+          "target": "Green_Gear"
+        },
+        {
+          "end_robots": {
+            "Blue": [
+              21,
+              17
+            ],
+            "Green": [
+              23,
+              9
+            ],
+            "Red": [
+              4,
+              10
+            ],
+            "Yellow": [
+              15,
+              14
+            ]
+          },
+          "features": {
+            "changed_robot_total": 8,
+            "chaos_events": 5,
+            "chaos_sand_stops": 1,
+            "chaos_teleports": 4,
+            "diagonal_reflections": 0,
+            "final_move_momentum_collisions": 0,
+            "momentum_chain_collisions": 0,
+            "momentum_collisions": 0,
+            "quadrant_transitions": 6,
+            "robot_switches": 0,
+            "support_moves": 0,
+            "target_robot_moves": 8
+          },
+          "moved_robot_count": 1,
+          "moved_robots": [
+            "Red"
+          ],
+          "path": [
+            [
+              "Red",
+              "top"
+            ],
+            [
+              "Red",
+              "left"
+            ],
+            [
+              "Red",
+              "top"
+            ],
+            [
+              "Red",
+              "right"
+            ],
+            [
+              "Red",
+              "right"
+            ],
+            [
+              "Red",
+              "bottom"
+            ],
+            [
+              "Red",
+              "top"
+            ],
+            [
+              "Red",
+              "left"
+            ]
+          ],
+          "states_expanded": 18782,
+          "steps": 8,
+          "target": "Red_Gear"
+        }
+      ],
+      "safe_transforms": [
+        [
+          0,
+          false
+        ]
+      ],
+      "sand_cells": [
+        [
+          0,
+          12
+        ],
+        [
+          2,
+          8
+        ],
+        [
+          12,
+          14
+        ],
+        [
+          18,
+          7
+        ],
+        [
+          19,
+          17
+        ],
+        [
+          21,
+          18
+        ],
+        [
+          24,
+          7
+        ],
+        [
+          24,
+          21
+        ]
+      ],
+      "target_order": [
+        "Yellow_Moon",
+        "Red_Moon",
+        "Yellow_Star",
+        "Yellow_Planet",
+        "Green_Moon",
+        "Blue_Moon",
+        "Yellow_Gear",
+        "Wild_Vortex",
+        "Blue_Star",
+        "Green_Star",
+        "Red_Star",
+        "Blue_Planet",
+        "Blue_Gear",
+        "Red_Planet",
+        "Green_Planet",
+        "Green_Gear",
+        "Red_Gear"
+      ],
+      "targets": {
+        "Blue_Gear": [
+          15,
+          9
+        ],
+        "Blue_Moon": [
+          4,
+          21
+        ],
+        "Blue_Planet": [
+          15,
+          13
+        ],
+        "Blue_Star": [
+          11,
+          18
+        ],
+        "Green_Gear": [
+          23,
+          9
+        ],
+        "Green_Moon": [
+          7,
+          0
+        ],
+        "Green_Planet": [
+          14,
+          14
+        ],
+        "Green_Star": [
+          16,
+          24
+        ],
+        "Red_Gear": [
+          4,
+          10
+        ],
+        "Red_Moon": [
+          6,
+          24
+        ],
+        "Red_Planet": [
+          18,
+          17
+        ],
+        "Red_Star": [
+          0,
+          9
+        ],
+        "Wild_Vortex": [
+          13,
+          20
+        ],
+        "Yellow_Gear": [
+          10,
+          8
+        ],
+        "Yellow_Moon": [
+          24,
+          12
+        ],
+        "Yellow_Planet": [
+          4,
+          18
+        ],
+        "Yellow_Star": [
+          22,
+          23
+        ]
+      },
+      "v_walls": [
+        [
+          1,
+          15
+        ],
+        [
+          1,
+          19
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          2,
+          16
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          6
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          3,
+          20
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          4,
+          9
+        ],
+        [
+          4,
+          12
+        ],
+        [
+          5,
+          17
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          7,
+          15
+        ],
+        [
+          8,
+          15
+        ],
+        [
+          9,
+          5
+        ],
+        [
+          9,
+          7
+        ],
+        [
+          9,
+          10
+        ],
+        [
+          10,
+          1
+        ],
+        [
+          10,
+          14
+        ],
+        [
+          10,
+          15
+        ],
+        [
+          10,
+          16
+        ],
+        [
+          10,
+          21
+        ],
+        [
+          12,
+          2
+        ],
+        [
+          12,
+          8
+        ],
+        [
+          12,
+          15
+        ],
+        [
+          12,
+          21
+        ],
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          7
+        ],
+        [
+          14,
+          8
+        ],
+        [
+          14,
+          9
+        ],
+        [
+          14,
+          22
+        ],
+        [
+          15,
+          13
+        ],
+        [
+          15,
+          16
+        ],
+        [
+          15,
+          18
+        ],
+        [
+          16,
+          8
+        ],
+        [
+          17,
+          8
+        ],
+        [
+          18,
+          3
+        ],
+        [
+          19,
+          6
+        ],
+        [
+          20,
+          11
+        ],
+        [
+          20,
+          14
+        ],
+        [
+          20,
+          19
+        ],
+        [
+          20,
+          23
+        ],
+        [
+          21,
+          3
+        ],
+        [
+          21,
+          14
+        ],
+        [
+          21,
+          17
+        ],
+        [
+          21,
+          19
+        ],
+        [
+          22,
+          7
+        ],
+        [
+          22,
+          16
+        ],
+        [
+          22,
+          18
+        ],
+        [
+          22,
+          19
+        ],
+        [
+          23,
+          4
+        ],
+        [
+          23,
+          8
         ]
       ]
     }

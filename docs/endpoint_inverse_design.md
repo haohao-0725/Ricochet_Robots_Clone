@@ -87,6 +87,12 @@ plan_session(h_walls, v_walls, lo, hi, min_robots, ...)         # 任意自訂�
 - 合約：每題 6–12 步、17/17 題都需碰撞（`mode_contracts.v3_momentum`）；
 - `ensure_momentum_catalog` 在固定板上試多組隨機起點，成功後以 exact momentum solver 認證。
 
+## 6.5 Chaos 版與碰撞終結（2026-07-03 新增，證明第 8 節的擴充指南可行）
+
+**碰撞終結（Momentum 強化）**：`momentum_endpoints` 現在追蹤 `fin_parent`——每個狀態「以碰撞轉移到達」的（前驅, 移動）。目標只放在「最短深度且到達轉移是碰撞、且該回合目標機器人在該轉移中移動」的終點格，於是**每一題最短解的最後一步都是把機器人撞上目標（或撞停在目標上）**。合約欄位 `min_final_collision_rounds: 17`；特徵 `final_move_momentum_collisions` 由 `solver.analyze_path` 回報。
+
+**Chaos 模式（25×25，四機制合一）**：`chaos_rules.py` 合併動量推撞＋斜牆反射＋傳送門（彩色限同色、白色萬用、出口被佔則失效、傳送不耗動量）＋沙格（進入即停、吸收剩餘動量），進格效果順序＝沙格→傳送門→斜牆。設計器樣板照抄 momentum：`chaos_endpoints`（機制旗標＝任一特殊事件）＋ `plan_chaos_endpoint_session`（目標不放特殊格）。25×25 中央 2×2 落在 (11,11)–(12,12)（`grid//2-1..grid//2`，桌面/手機建板函式皆自動處理）。合約：5–11 步、17 題全部至少一次特殊機制、exact 認證。目錄欄位新增 `portals` / `sand_cells`（map_catalog 編解碼、簽章僅在非空時納入以保持舊圖簽章不變）。**手機版規則一致性**：以 400 組隨機移動向量比對 Python `resolve_chaos_move` 與 JS `chaosMove`，400/400 全同。
+
 ## 7. 泛用性與效能現況（2026-07-03 實測）
 
 - 泛用性：4 板（含 2 張隨機突變板）× 6 帶（含 4 條未出貨自訂帶、min_robots=4 極端帶）= **24/24**；momentum 3 板 × 2 起點 = **6/6**。設計器對板面與帶都是參數化泛用的。

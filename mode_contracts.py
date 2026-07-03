@@ -54,6 +54,23 @@ MODE_CONTRACTS = {
         'max_round_step_drop': 3,
         'min_momentum_collisions': 1,
         'min_mechanic_rounds': 17,
+        # collision finale: the optimal path's LAST move must trigger a
+        # momentum collision (the target arrival is part of a crash)
+        'min_final_collision_rounds': 17,
+    },
+    'chaos': {
+        'map_policy': 'certified_catalog',
+        'rounds': 17,
+        'grid_size': 25,
+        'min_steps': 5,
+        'max_steps': 11,
+        'target_steps': 8,
+        'min_moved_robots': 1,
+        'max_round_step_drop': 3,
+        # every round's optimal must use >=1 chaos mechanic
+        # (teleport / sand stop / diagonal reflection / momentum collision)
+        'min_chaos_events': 1,
+        'min_mechanic_rounds': 17,
     },
     'super_expert': {
         'map_policy': 'certified_catalog',
@@ -125,6 +142,15 @@ def session_meets_contract(rounds, contract):
     if average_support < contract.get('min_average_support_moves', 0):
         return False
 
+    required_final_collision_rounds = contract.get('min_final_collision_rounds', 0)
+    if required_final_collision_rounds:
+        final_collision_rounds = sum(
+            item.get('features', {}).get('final_move_momentum_collisions', 0) > 0
+            for item in rounds
+        )
+        if final_collision_rounds < required_final_collision_rounds:
+            return False
+
     required_mechanic_rounds = contract.get('min_mechanic_rounds', 0)
     if required_mechanic_rounds:
         mechanic_rounds = 0
@@ -135,6 +161,8 @@ def session_meets_contract(rounds, contract):
                 >= contract.get('min_diagonal_reflections', 0)
                 and features.get('momentum_collisions', 0)
                 >= contract.get('min_momentum_collisions', 0)
+                and features.get('chaos_events', 0)
+                >= contract.get('min_chaos_events', 0)
             ):
                 mechanic_rounds += 1
         if mechanic_rounds < required_mechanic_rounds:

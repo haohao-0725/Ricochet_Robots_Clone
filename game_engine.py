@@ -2,6 +2,7 @@ import random
 import json
 import os
 from ricochet_robots_board_data import build_board_matrix, TARGETS, GRID_SIZE
+from chaos_rules import resolve_chaos_move
 from momentum_rules import resolve_momentum_move
 
 # Bump whenever the generated-board format or the certified map set changes in a
@@ -37,6 +38,8 @@ class GameEngine:
         self.win_count = 0
         self.difficulty_mode = 'easy'
         self.diagonal_walls = {}
+        self.portals = {}
+        self.sand_cells = []
         self.validated_target_order = []
         self.validation_rounds = []
         self.generated_quality = {}
@@ -101,6 +104,8 @@ class GameEngine:
         self.start_robots = self.robots.copy()
         self.difficulty_mode = 'easy'
         self.diagonal_walls = {}
+        self.portals = {}
+        self.sand_cells = []
         self.validated_target_order = []
         self.validation_rounds = []
         self.generated_quality = {}
@@ -111,6 +116,8 @@ class GameEngine:
         self.grid_size = 16
         self.board = build_board_matrix()
         self.diagonal_walls = {}
+        self.portals = {}
+        self.sand_cells = []
         self.validated_target_order = []
         self.validation_rounds = []
         self.generated_quality = {}
@@ -144,6 +151,8 @@ class GameEngine:
             board_data['h_walls'], board_data['v_walls'], grid_size=self.grid_size
         )
         self.diagonal_walls = board_data.get('diagonal_walls', {})
+        self.portals = self._normalize_portals(board_data.get('portals', {}))
+        self.sand_cells = [tuple(cell) for cell in board_data.get('sand_cells', [])]
 
         target_items = list(board_data['targets'].items())
         self.validated_target_order = list(board_data.get('validated_target_order', []))
@@ -181,6 +190,31 @@ class GameEngine:
     def is_target_retired(self, target_name):
         return target_name in self.completed_targets
 
+    @staticmethod
+    def _normalize_portals(data):
+        """Accept portals as {(r,c): {...}} / {'(r,c)': {...}} / list of
+        {'cell', 'color', 'exit'} (JSON save round-trip) -> tuple-keyed dict."""
+        normalized = {}
+        if isinstance(data, list):
+            for item in data:
+                normalized[tuple(item['cell'])] = {
+                    'color': item['color'],
+                    'exit': tuple(item['exit']),
+                }
+            return normalized
+        for key, value in (data or {}).items():
+            if isinstance(key, str):
+                import ast
+                try:
+                    key = ast.literal_eval(key)
+                except Exception:
+                    continue
+            normalized[tuple(key)] = {
+                'color': value['color'],
+                'exit': tuple(value['exit']),
+            }
+        return normalized
+
     def _normalized_diagonal_walls(self):
         normalized = {}
         for key, value in self.diagonal_walls.items():
@@ -214,6 +248,8 @@ class GameEngine:
                 grid_size=self.grid_size,
                 diagonal_walls=self._normalized_diagonal_walls(),
                 movement_mode=self._solver_movement_mode(),
+                portals=self.portals,
+                sand_cells=self.sand_cells,
             )
             steps, path = solver.solve(
                 self.robots.copy(),
@@ -364,13 +400,28 @@ class GameEngine:
         return candidates[0]
 
     def _solver_movement_mode(self):
-        return 'momentum' if self.difficulty_mode == 'v3_momentum' else 'classic'
+        if self.difficulty_mode == 'v3_momentum':
+            return 'momentum'
+        if self.difficulty_mode == 'chaos':
+            return 'chaos'
+        return 'classic'
 
     def move_robot(self, color, direction):
         if color not in self.robots: return False
 
-        if self.difficulty_mode == 'v3_momentum':
-            result = resolve_momentum_move(self.board, self.robots, color, direction)
+        if self.difficulty_mode in ('v3_momentum', 'chaos'):
+            if self.difficulty_mode == 'chaos':
+                result = resolve_chaos_move(
+                    self.board,
+                    self._normalized_diagonal_walls(),
+                    self.portals,
+                    self.sand_cells,
+                    self.robots,
+                    color,
+                    direction,
+                )
+            else:
+                result = resolve_momentum_move(self.board, self.robots, color, direction)
             if not result.moved:
                 self.last_move_changed_colors = []
                 self.last_move_animation_steps = []
@@ -542,6 +593,12 @@ class GameEngine:
                 'h_walls': h_walls,
                 'v_walls': v_walls,
                 'diagonal_walls': {str(k): v for k, v in self.diagonal_walls.items()},
+                'portals': [
+                    {'cell': list(cell), 'color': value['color'],
+                     'exit': list(value['exit'])}
+                    for cell, value in self.portals.items()
+                ],
+                'sand_cells': [list(cell) for cell in self.sand_cells],
                 'targets': dict(self.targets),
                 'robot_positions': self.start_robots,
                 'grid_size': self.grid_size,

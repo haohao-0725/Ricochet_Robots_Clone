@@ -18,12 +18,19 @@ def validate_catalog_entry(entry, exact=False):
         entry['v_walls'],
         grid_size=entry.get('grid_size', 16),
     )
-    movement_mode = 'momentum' if mode == 'v3_momentum' else 'classic'
+    if mode == 'v3_momentum':
+        movement_mode = 'momentum'
+    elif mode == 'chaos':
+        movement_mode = 'chaos'
+    else:
+        movement_mode = 'classic'
     solver = RicochetSolver(
         board,
         grid_size=entry.get('grid_size', 16),
         diagonal_walls=entry.get('diagonal_walls', {}),
         movement_mode=movement_mode,
+        portals=entry.get('portals', {}),
+        sand_cells=entry.get('sand_cells', ()),
     )
     current_robots = {
         color: tuple(position)
@@ -169,6 +176,14 @@ def topology_signature(entry):
             for cell, value in entry.get('diagonal_walls', {}).items()
         ),
     }
+    # chaos-only extras; omitted when empty so legacy signatures stay stable
+    if entry.get('portals'):
+        payload['p'] = sorted(
+            (tuple(cell), value['color'], tuple(value['exit']))
+            for cell, value in entry['portals'].items()
+        )
+    if entry.get('sand_cells'):
+        payload['s'] = sorted(tuple(cell) for cell in entry['sand_cells'])
     encoded = json.dumps(payload, sort_keys=True, separators=(',', ':'))
     return hashlib.sha256(encoded.encode('utf-8')).hexdigest()[:16]
 

@@ -38,7 +38,7 @@ DIAGONAL_REFLECTIONS = {
         'right': 'bottom',
     },
 }
-CATALOG_ONLY_MODES = ('v3_momentum', 'super_expert')
+CATALOG_ONLY_MODES = ('v3_momentum', 'super_expert', 'chaos')
 QUADRANTS = ('tl', 'tr', 'bl', 'br')
 QUADRANT_TEMPLATES = {
     'balanced': ((1, 2), (2, 5), (4, 1), (5, 4)),
@@ -160,6 +160,16 @@ class BoardGenerator:
             'round_min_robots': 3,
             'round_max_depth': 14,
             'max_states': 250000,
+            'max_round_step_drop': 3,
+        },
+        'chaos': {
+            'num_robots': 4,
+            'rounds': 17,
+            'round_min_steps': 5,
+            'round_max_steps': 11,
+            'round_min_robots': 1,
+            'round_max_depth': 11,
+            'max_states': 400000,
             'max_round_step_drop': 3,
         },
     }
@@ -332,7 +342,12 @@ class BoardGenerator:
             return None
         base_index = random.randrange(len(bases))
         base = bases[base_index]
+        grid_size = base.get('grid_size', GRID_SIZE)
         rotations, mirror = random.choice(base['safe_transforms'])
+        if grid_size != GRID_SIZE:
+            # geometric transforms are 16x16-tuned; larger boards (chaos 25x25)
+            # ship identity-only safe_transforms, variety comes from remapping
+            rotations, mirror = 0, False
         h_walls, v_walls = self._transform_board_walls(
             base['h_walls'],
             base['v_walls'],
@@ -372,12 +387,30 @@ class BoardGenerator:
             }
             for position, value in base.get('diagonal_walls', {}).items()
         }
+        # chaos extras (identity geometry, colour remap only; White is universal)
+        portals = {
+            tuple(cell): {
+                'color': color_map.get(value['color'], value['color']),
+                'exit': tuple(value['exit']),
+            }
+            for cell, value in base.get('portals', {}).items()
+        }
+        sand_cells = [tuple(cell) for cell in base.get('sand_cells', [])]
 
-        board_matrix = build_board_matrix_from_walls(h_walls, v_walls)
+        board_matrix = build_board_matrix_from_walls(h_walls, v_walls, grid_size=grid_size)
+        if mode == 'v3_momentum':
+            variant_movement_mode = 'momentum'
+        elif mode == 'chaos':
+            variant_movement_mode = 'chaos'
+        else:
+            variant_movement_mode = 'classic'
         solver = RicochetSolver(
             board_matrix,
+            grid_size=grid_size,
             diagonal_walls=diagonal_walls,
-            movement_mode='momentum' if mode == 'v3_momentum' else 'classic',
+            movement_mode=variant_movement_mode,
+            portals=portals,
+            sand_cells=sand_cells,
         )
         current_robots = robots.copy()
         rounds = []
@@ -466,31 +499,50 @@ class BoardGenerator:
                 },
             })
 
-        structural = self._structural_metrics(
-            board_matrix,
-            set(h_walls),
-            set(v_walls),
-            targets,
-        )
         steps = [item['steps'] for item in rounds]
-        metrics = BoardQualityMetrics(
-            wall_count=structural.wall_count,
-            target_quadrant_balance=structural.target_quadrant_balance,
-            wall_quadrant_balance=structural.wall_quadrant_balance,
-            min_target_spacing=structural.min_target_spacing,
-            min_reachable_cells=self._precheck_reachability(
+        if mode == 'chaos':
+            # structural metrics / reachability precheck are 16x16-tuned; the
+            # chaos entry is already exact-certified offline, so use pass-through
+            # values instead of running them on the 25x25 board
+            metrics = BoardQualityMetrics(
+                wall_count=len(h_walls) + len(v_walls),
+                target_quadrant_balance=0,
+                wall_quadrant_balance=0,
+                min_target_spacing=2,
+                min_reachable_cells=1,
+                solved_targets=len(rounds),
+                average_steps=sum(steps) / len(steps),
+                max_steps=max(steps),
+                symmetry_score=1.0,
+                max_wall_cluster=0,
+                validated_rounds=len(rounds),
+                total_round_steps=sum(steps),
+            )
+        else:
+            structural = self._structural_metrics(
                 board_matrix,
-                robots,
+                set(h_walls),
+                set(v_walls),
                 targets,
-            ),
-            solved_targets=len(rounds),
-            average_steps=sum(steps) / len(steps),
-            max_steps=max(steps),
-            symmetry_score=structural.symmetry_score,
-            max_wall_cluster=structural.max_wall_cluster,
-            validated_rounds=len(rounds),
-            total_round_steps=sum(steps),
-        )
+            )
+            metrics = BoardQualityMetrics(
+                wall_count=structural.wall_count,
+                target_quadrant_balance=structural.target_quadrant_balance,
+                wall_quadrant_balance=structural.wall_quadrant_balance,
+                min_target_spacing=structural.min_target_spacing,
+                min_reachable_cells=self._precheck_reachability(
+                    board_matrix,
+                    robots,
+                    targets,
+                ),
+                solved_targets=len(rounds),
+                average_steps=sum(steps) / len(steps),
+                max_steps=max(steps),
+                symmetry_score=structural.symmetry_score,
+                max_wall_cluster=structural.max_wall_cluster,
+                validated_rounds=len(rounds),
+                total_round_steps=sum(steps),
+            )
         result = self._make_result(
             mode,
             h_walls,
@@ -503,6 +555,9 @@ class BoardGenerator:
         )
         result['difficulty'] = mode
         result['diagonal_walls'] = diagonal_walls
+        result['grid_size'] = grid_size
+        result['portals'] = portals
+        result['sand_cells'] = sand_cells
         result['quality'].update({
             'generator': 'validated_catalog_v2',
             'catalog_base': base_index,

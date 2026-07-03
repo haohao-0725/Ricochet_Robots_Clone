@@ -2,6 +2,7 @@ import heapq
 import time
 from collections import deque
 
+from chaos_rules import resolve_chaos_move
 from momentum_rules import resolve_momentum_move
 
 
@@ -9,10 +10,13 @@ DIRECTIONS = ('top', 'bottom', 'left', 'right')
 
 
 class RicochetSolver:
-    def __init__(self, board, grid_size=16, diagonal_walls=None, movement_mode='classic'):
+    def __init__(self, board, grid_size=16, diagonal_walls=None, movement_mode='classic',
+                 portals=None, sand_cells=None):
         self.board = board
         self.grid_size = grid_size
         self.diagonal_walls = diagonal_walls or {}
+        self.portals = portals or {}
+        self.sand_cells = set(sand_cells or ())
         self.movement_mode = movement_mode
         self._color_empty_adj = {}
         self._color_rev_adj = {}
@@ -415,8 +419,8 @@ class RicochetSolver:
             for robot_index, color in enumerate(colors):
                 r, c = state[robot_index]
                 for direction in DIRECTIONS:
-                    if self.movement_mode == 'momentum':
-                        result = resolve_momentum_move(self.board, state_by_color, color, direction)
+                    if self.movement_mode in ('momentum', 'chaos'):
+                        result = self._resolve_special_move(state_by_color, color, direction)
                         if not result.moved:
                             continue
                         next_state = tuple(result.robots[item_color] for item_color in colors)
@@ -452,11 +456,19 @@ class RicochetSolver:
         }
         return -1, []
 
+    def _resolve_special_move(self, robots, color, direction):
+        if self.movement_mode == 'chaos':
+            return resolve_chaos_move(
+                self.board, self.diagonal_walls, self.portals, self.sand_cells,
+                robots, color, direction,
+            )
+        return resolve_momentum_move(self.board, robots, color, direction)
+
     def apply_path(self, robots_dict, path):
         robots = {color: tuple(position) for color, position in robots_dict.items()}
         for color, direction in path:
-            if self.movement_mode == 'momentum':
-                result = resolve_momentum_move(self.board, robots, color, direction)
+            if self.movement_mode in ('momentum', 'chaos'):
+                result = self._resolve_special_move(robots, color, direction)
                 if not result.moved:
                     raise ValueError(f'Invalid momentum path move: {color} {direction}')
                 robots = result.robots
@@ -475,12 +487,15 @@ class RicochetSolver:
         momentum_chain_collisions = 0
         changed_robot_total = 0
         quadrant_transitions = 0
+        last_move_collisions = 0
+        chaos_teleports = 0
+        chaos_sand_stops = 0
 
         for color, direction in path:
             start_positions = dict(robots)
             start = robots[color]
-            if self.movement_mode == 'momentum':
-                result = resolve_momentum_move(self.board, robots, color, direction)
+            if self.movement_mode in ('momentum', 'chaos'):
+                result = self._resolve_special_move(robots, color, direction)
                 if not result.moved:
                     raise ValueError(f'Invalid momentum path move: {color} {direction}')
                 collisions = [
@@ -489,6 +504,16 @@ class RicochetSolver:
                 ]
                 momentum_collisions += len(collisions)
                 momentum_chain_collisions += max(0, len(collisions) - 1)
+                last_move_collisions = len(collisions)
+                chaos_teleports += sum(
+                    event.get('type') == 'teleport' for event in result.events
+                )
+                chaos_sand_stops += sum(
+                    event.get('type') == 'sand_stop' for event in result.events
+                )
+                diagonal_reflections += sum(
+                    event.get('type') == 'reflect' for event in result.events
+                )
                 changed_robot_total += len(result.changed_colors)
                 robots = result.robots
             else:
@@ -527,6 +552,13 @@ class RicochetSolver:
             'diagonal_reflections': diagonal_reflections,
             'momentum_collisions': momentum_collisions,
             'momentum_chain_collisions': momentum_chain_collisions,
+            'final_move_momentum_collisions': last_move_collisions,
+            'chaos_teleports': chaos_teleports,
+            'chaos_sand_stops': chaos_sand_stops,
+            'chaos_events': (
+                chaos_teleports + chaos_sand_stops
+                + diagonal_reflections + momentum_collisions
+            ),
             'changed_robot_total': changed_robot_total,
             'quadrant_transitions': quadrant_transitions,
         }

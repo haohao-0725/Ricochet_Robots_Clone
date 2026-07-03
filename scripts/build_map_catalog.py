@@ -23,6 +23,7 @@ from map_catalog import (
     load_catalog,
     save_catalog,
 )
+from chaos_rules import resolve_chaos_move
 from momentum_rules import resolve_momentum_move
 from ricochet_robots_board_data import (
     HORIZONTAL_WALLS,
@@ -621,14 +622,15 @@ MOM_DIRS = ('top', 'bottom', 'left', 'right')
 
 def momentum_endpoints(board, config, cap=120000):
     """Labeled momentum BFS from `config`. Returns per (colour, cell) the exact
-    optimal momentum depth and, when an optimal-length path with >=1 collision
-    exists, the end state + parent pointers to reconstruct that collision witness.
-    A collision move inherently moves >=2 robots, so >=2-robot is automatic."""
+    optimal momentum depth and, when a COLLISION-FINALE witness exists (an
+    optimal-length path whose LAST move is a momentum crash that moves this
+    robot onto the cell -- either crashing to a stop or being shunted there),
+    the end state to reconstruct it. A collision move inherently moves >=2
+    robots, so the >=2-robot requirement is automatic."""
     start = tuple(config[c] for c in MOM_COLORS)
     visited = {start: 0}
-    coll_reach = {start: False}
     parent = {}
-    coll_parent = {}
+    fin_parent = {}   # state -> (prev, move) of a same-depth collision arrival
     q = deque([start])
     expanded = 0
     while q and expanded <= cap:
@@ -646,53 +648,50 @@ def momentum_endpoints(board, config, cap=120000):
                 ns = tuple(res.robots[c] for c in MOM_COLORS)
                 is_coll = any(e.get('type') == 'robot_collision' for e in res.events)
                 nd = d + 1
-                ncoll = coll_reach[s] or is_coll
                 if ns not in visited:
                     visited[ns] = nd
-                    coll_reach[ns] = ncoll
-                    parent[ns] = (s, (color, direction), is_coll)
-                    if ncoll:
-                        coll_parent[ns] = (s, (color, direction), is_coll)
+                    parent[ns] = (s, (color, direction))
+                    if is_coll:
+                        fin_parent[ns] = (s, (color, direction))
                     q.append(ns)
-                elif visited[ns] == nd and ncoll and not coll_reach[ns]:
-                    coll_reach[ns] = True
-                    coll_parent[ns] = (s, (color, direction), is_coll)
+                elif visited[ns] == nd and is_coll and ns not in fin_parent:
+                    fin_parent[ns] = (s, (color, direction))
     per_cell = {}
     for ns, d in visited.items():
+        fin = fin_parent.get(ns)
         for i, color in enumerate(MOM_COLORS):
             cell = ns[i]
             if cell in MOM_CENTER:
                 continue
+            # finale witness: the crash transition into ns moved THIS robot
+            arrived_by_crash = fin is not None and fin[0][i] != cell
             key = (color, cell)
             rec = per_cell.get(key)
             if rec is None or d < rec[0]:
-                per_cell[key] = [d, ns if coll_reach[ns] else None]
-            elif d == rec[0] and rec[1] is None and coll_reach[ns]:
+                per_cell[key] = [d, ns if arrived_by_crash else None]
+            elif d == rec[0] and rec[1] is None and arrived_by_crash:
                 rec[1] = ns
-    return per_cell, parent, coll_parent, coll_reach, start
+    return per_cell, parent, fin_parent, start
 
 
-def momentum_reconstruct(parent, coll_parent, coll_reach, start, end):
-    moves = []
-    cur = end
-    need = True
+def momentum_reconstruct(parent, fin_parent, start, end):
+    """Optimal path to `end` ending with the recorded collision arrival."""
+    prev, mv = fin_parent[end]
+    moves = [[mv[0], mv[1]]]
+    cur = prev
     while cur != start:
-        if need and coll_reach.get(cur) and cur in coll_parent:
-            prev, mv, is_coll = coll_parent[cur]
-        else:
-            prev, mv, is_coll = parent[cur]
-        moves.append([mv[0], mv[1]])
-        if is_coll:
-            need = False
-        cur = prev
+        p, m = parent[cur]
+        moves.append([m[0], m[1]])
+        cur = p
     moves.reverse()
     return moves
 
 
 def plan_momentum_endpoint_session(board, robots_start, rng, spread=False):
-    """Endpoint-design a strict momentum session: every round 6-12 steps, >=1
-    collision (=> >=2 robots), chained, target placed at an in-band collision
-    endpoint. Returns entry-ready rounds/targets/robots or None."""
+    """Endpoint-design a strict momentum session: every round 6-12 steps, a
+    COLLISION FINALE (the optimal path's last move is a crash that moves the
+    target robot onto the target => >=2 robots automatic), chained, target
+    placed at an in-band finale endpoint. Returns entry-ready dict or None."""
     config = dict(robots_start)
     rounds = []
     used_cells = set()
@@ -700,7 +699,7 @@ def plan_momentum_endpoint_session(board, robots_start, rng, spread=False):
     wild_used = False
     prev = None
     for _ in range(17):
-        per_cell, parent, coll_parent, coll_reach, start = momentum_endpoints(board, config)
+        per_cell, parent, fin_parent, start = momentum_endpoints(board, config)
         min_across = {}
         for (color, cell), (depth, _cs) in per_cell.items():
             if cell not in min_across or depth < min_across[cell]:
@@ -735,7 +734,7 @@ def plan_momentum_endpoint_session(board, robots_start, rng, spread=False):
         if chosen is None:
             return None
         color, cell, depth, cs, use_wild = chosen
-        witness = momentum_reconstruct(parent, coll_parent, coll_reach, start, cs)
+        witness = momentum_reconstruct(parent, fin_parent, start, cs)
         name = 'Wild_Vortex' if use_wild else f'{color}_{MOM_SYMBOLS[colored_used[color]]}'
         if use_wild:
             wild_used = True
@@ -763,9 +762,10 @@ def ensure_momentum_catalog(catalog, target_momentum, path):
     if len(existing) >= target_momentum:
         return
     # Endpoint-design a STRICT momentum session (every round 6-12 steps, >=2
-    # robots, >=1 momentum collision) on the symmetric Normal seed board: each
-    # round's target is placed at an in-band collision endpoint reached from the
-    # chained config, so the strict contract holds by construction.
+    # robots, and a COLLISION FINALE: the optimal path's last move is a crash
+    # that moves the target robot onto the target) on the symmetric Normal seed
+    # board: each round's target is placed at an in-band finale endpoint reached
+    # from the chained config, so the strict contract holds by construction.
     base_seed = symmetric_normal_seed()
     board = build_board_matrix_from_walls(
         base_seed['h_walls'],
@@ -815,9 +815,347 @@ def ensure_momentum_catalog(catalog, target_momentum, path):
         item['features']['momentum_collisions'] > 0
         for item in accepted_entry['rounds']
     )
+    finale_rounds = sum(
+        item['features'].get('final_move_momentum_collisions', 0) > 0
+        for item in accepted_entry['rounds']
+    )
     print(
         f'accepted {accepted_entry["id"]}: {mechanic_rounds}/17 collision rounds, '
+        f'{finale_rounds}/17 collision finales, '
         f'min {min(steps)} avg {round(sum(steps) / 17, 1)} steps {steps}',
+        flush=True,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Chaos mode (25x25): momentum + diagonal walls + portals + sand, all at once.
+# Same endpoint-targeting inverse design: one labeled chaos BFS per round, the
+# target is PLACED at an in-band endpoint whose optimal witness uses >=1 chaos
+# mechanic (teleport / sand stop / reflection / collision).
+# ---------------------------------------------------------------------------
+
+CHAOS_N = 25
+CHAOS_LO, CHAOS_HI = 5, 11
+CHAOS_CENTER = {(11, 11), (11, 12), (12, 11), (12, 12)}
+CHAOS_PORTAL_COLORS = ('Red', 'Blue', 'Green', 'Yellow', 'White')
+CHAOS_SAND_COUNT = 8
+CHAOS_DIAG_COUNT = 8
+CHAOS_WALL_TARGET = 110
+CHAOS_SPECIALS = ('teleport', 'sand_stop', 'reflect', 'robot_collision')
+
+
+def add_l_wall_n(h_walls, v_walls, position, orientation, n):
+    """Grid-size-aware variant of add_l_wall."""
+    r, c = position
+    options = (
+        ((r - 1, c), (r, c - 1)),
+        ((r - 1, c), (r, c)),
+        ((r, c), (r, c - 1)),
+        ((r, c), (r, c)),
+    )
+    h_wall, v_wall = options[orientation]
+    if not (0 <= h_wall[0] < n - 1 and 0 <= h_wall[1] < n):
+        return False
+    if not (0 <= v_wall[0] < n and 0 <= v_wall[1] < n - 1):
+        return False
+    h_walls.add(h_wall)
+    v_walls.add(v_wall)
+    return True
+
+
+def build_chaos_board_spec(seed):
+    """25x25 chaos board: 180-degree symmetric L-walls, 5 portal pairs
+    (4 robot-coloured + 1 white universal), sand cells and coloured diagonals.
+    Specials never share a cell; the centre 2x2 block stays clear."""
+    rng = random.Random(seed)
+    n = CHAOS_N
+    h_walls, v_walls = set(), set()
+    attempts = 0
+    while len(h_walls) + len(v_walls) < CHAOS_WALL_TARGET and attempts < 5000:
+        attempts += 1
+        r = rng.randrange(1, n - 1)
+        c = rng.randrange(1, n - 1)
+        if 10 <= r <= 14 and 10 <= c <= 14:
+            continue
+        orientation = rng.randrange(4)
+        add_l_wall_n(h_walls, v_walls, (r, c), orientation, n)
+        add_l_wall_n(h_walls, v_walls, (n - 1 - r, n - 1 - c), 3 - orientation, n)
+
+    used = set(CHAOS_CENTER)
+    cells = [(r, c) for r in range(n) for c in range(n) if (r, c) not in used]
+    rng.shuffle(cells)
+
+    def take_cell(predicate=None):
+        for cell in cells:
+            if cell in used:
+                continue
+            if predicate is not None and not predicate(cell):
+                continue
+            used.add(cell)
+            return cell
+        return None
+
+    portals = {}
+    for color in CHAOS_PORTAL_COLORS:
+        first = take_cell()
+        if first is None:
+            return None
+        second = take_cell(
+            lambda cell: abs(cell[0] - first[0]) + abs(cell[1] - first[1]) >= 12
+        )
+        if second is None:
+            return None
+        portals[first] = {'color': color, 'exit': second}
+        portals[second] = {'color': color, 'exit': first}
+
+    sand_cells = set()
+    for _ in range(CHAOS_SAND_COUNT):
+        cell = take_cell()
+        if cell is None:
+            return None
+        sand_cells.add(cell)
+
+    diagonal_walls = {}
+    for _ in range(CHAOS_DIAG_COUNT):
+        cell = take_cell(
+            lambda cell: 1 <= cell[0] <= n - 2 and 1 <= cell[1] <= n - 2
+        )
+        if cell is None:
+            return None
+        diagonal_walls[cell] = {
+            'type': rng.choice(('/', '\\')),
+            'color': rng.choice(('Red', 'Blue', 'Green', 'Yellow')),
+        }
+
+    return {
+        'h_walls': h_walls,
+        'v_walls': v_walls,
+        'portals': portals,
+        'sand_cells': sand_cells,
+        'diagonal_walls': diagonal_walls,
+        'special_cells': set(used) - set(CHAOS_CENTER),
+    }
+
+
+def chaos_endpoints(board, spec, config, cap=60000):
+    """Labeled chaos BFS. per (colour, cell): exact optimal depth + an
+    optimal-length witness end-state whose path used >=1 chaos mechanic."""
+    diagonal_walls = spec['diagonal_walls']
+    portals = spec['portals']
+    sand_cells = spec['sand_cells']
+    start = tuple(config[c] for c in MOM_COLORS)
+    visited = {start: 0}
+    mech_reach = {start: False}
+    parent = {}
+    mech_parent = {}
+    q = deque([start])
+    expanded = 0
+    while q and expanded <= cap:
+        s = q.popleft()
+        d = visited[s]
+        if d >= CHAOS_HI:
+            continue
+        expanded += 1
+        cfg = {MOM_COLORS[i]: s[i] for i in range(4)}
+        for color in MOM_COLORS:
+            for direction in MOM_DIRS:
+                res = resolve_chaos_move(
+                    board, diagonal_walls, portals, sand_cells,
+                    cfg, color, direction,
+                )
+                if not res.moved:
+                    continue
+                ns = tuple(res.robots[c] for c in MOM_COLORS)
+                is_mech = any(
+                    event.get('type') in CHAOS_SPECIALS for event in res.events
+                )
+                nd = d + 1
+                nmech = mech_reach[s] or is_mech
+                if ns not in visited:
+                    visited[ns] = nd
+                    mech_reach[ns] = nmech
+                    parent[ns] = (s, (color, direction), is_mech)
+                    if nmech:
+                        mech_parent[ns] = (s, (color, direction), is_mech)
+                    q.append(ns)
+                elif visited[ns] == nd and nmech and not mech_reach[ns]:
+                    mech_reach[ns] = True
+                    mech_parent[ns] = (s, (color, direction), is_mech)
+    per_cell = {}
+    for ns, d in visited.items():
+        for i, color in enumerate(MOM_COLORS):
+            cell = ns[i]
+            if cell in CHAOS_CENTER:
+                continue
+            key = (color, cell)
+            rec = per_cell.get(key)
+            if rec is None or d < rec[0]:
+                per_cell[key] = [d, ns if mech_reach[ns] else None]
+            elif d == rec[0] and rec[1] is None and mech_reach[ns]:
+                rec[1] = ns
+    return per_cell, parent, mech_parent, mech_reach, start
+
+
+def chaos_reconstruct(parent, mech_parent, mech_reach, start, end):
+    """Optimal path to `end` guaranteed to include >=1 mechanic move."""
+    moves = []
+    cur = end
+    need = True
+    while cur != start:
+        if need and mech_reach.get(cur) and cur in mech_parent:
+            prev, mv, is_mech = mech_parent[cur]
+        else:
+            prev, mv, is_mech = parent[cur]
+        moves.append([mv[0], mv[1]])
+        if is_mech:
+            need = False
+        cur = prev
+    moves.reverse()
+    return moves
+
+
+def plan_chaos_endpoint_session(board, spec, robots_start, rng, spread=False):
+    """Endpoint-design a 17-round chaos session: every round in [CHAOS_LO,
+    CHAOS_HI] steps with a >=1-mechanic witness, chained, targets never on
+    special cells."""
+    forbidden = spec['special_cells']
+    config = dict(robots_start)
+    rounds = []
+    used_cells = set()
+    colored_used = {c: 0 for c in MOM_COLORS}
+    wild_used = False
+    prev = None
+    for _ in range(17):
+        per_cell, parent, mech_parent, mech_reach, start = chaos_endpoints(
+            board, spec, config,
+        )
+        min_across = {}
+        for (color, cell), (depth, _cs) in per_cell.items():
+            if cell not in min_across or depth < min_across[cell]:
+                min_across[cell] = depth
+        options = []
+        for (color, cell), (depth, cs) in per_cell.items():
+            if cs is None or not (CHAOS_LO <= depth <= CHAOS_HI):
+                continue
+            if cell in used_cells or cell in forbidden:
+                continue
+            if prev is not None and prev - depth > 3:
+                continue
+            if any(abs(cell[0] - u[0]) + abs(cell[1] - u[1]) < 2 for u in used_cells):
+                continue
+            options.append((color, cell, depth, cs))
+        if not options:
+            return None
+        rng.shuffle(options)
+        want = (CHAOS_LO + CHAOS_HI + 1) // 2
+        if spread:
+            def region_pop(cell):
+                rr, cc = cell[0] // 5, cell[1] // 5
+                return sum(1 for u in used_cells
+                           if u[0] // 5 == rr and u[1] // 5 == cc)
+            options.sort(key=lambda o: (region_pop(o[1]), abs(o[2] - want)))
+        else:
+            options.sort(key=lambda o: abs(o[2] - want))
+        chosen = None
+        for color, cell, depth, cs in options:
+            if colored_used[color] < 4:
+                chosen = (color, cell, depth, cs, False)
+                break
+            if not wild_used and depth == min_across[cell]:
+                chosen = (color, cell, depth, cs, True)
+                break
+        if chosen is None:
+            return None
+        color, cell, depth, cs, use_wild = chosen
+        witness = chaos_reconstruct(parent, mech_parent, mech_reach, start, cs)
+        name = 'Wild_Vortex' if use_wild else f'{color}_{MOM_SYMBOLS[colored_used[color]]}'
+        if use_wild:
+            wild_used = True
+        else:
+            colored_used[color] += 1
+        rounds.append({'target': name, 'path': witness, 'cell': cell})
+        used_cells.add(cell)
+        config = {MOM_COLORS[i]: cs[i] for i in range(4)}
+        prev = depth
+    targets = {rd['target']: rd['cell'] for rd in rounds}
+    return {
+        'robot_positions': dict(robots_start),
+        'targets': targets,
+        'target_order': [rd['target'] for rd in rounds],
+        'rounds': [{'target': rd['target'], 'path': rd['path']} for rd in rounds],
+    }
+
+
+def ensure_chaos_catalog(catalog, target_chaos, path):
+    existing = [
+        decode_map_entry(item)
+        for item in catalog['maps']
+        if item['mode'] == 'chaos'
+    ]
+    if len(existing) >= target_chaos:
+        return
+    accepted_entry = None
+    for board_seed in range(8):
+        spec = build_chaos_board_spec(91000 + board_seed)
+        if spec is None:
+            continue
+        board = build_board_matrix_from_walls(
+            spec['h_walls'], spec['v_walls'], grid_size=CHAOS_N,
+        )
+        free_cells = [
+            (r, c) for r in range(CHAOS_N) for c in range(CHAOS_N)
+            if (r, c) not in CHAOS_CENTER and (r, c) not in spec['special_cells']
+        ]
+        for attempt in range(10):
+            rng = random.Random(87000 + board_seed * 100 + attempt)
+            robots_start = dict(zip(MOM_COLORS, rng.sample(free_cells, 4)))
+            plan = plan_chaos_endpoint_session(
+                board, spec, robots_start, rng, spread=SPREAD_TARGETS,
+            )
+            if not plan or len(plan['rounds']) != 17:
+                continue
+            entry = {
+                'id': f'chaos-certified-{len(existing):02d}',
+                'mode': 'chaos',
+                'family': 'chaos_symmetric_random',
+                'grid_size': CHAOS_N,
+                'h_walls': set(spec['h_walls']),
+                'v_walls': set(spec['v_walls']),
+                'diagonal_walls': dict(spec['diagonal_walls']),
+                'portals': dict(spec['portals']),
+                'sand_cells': sorted(spec['sand_cells']),
+                'targets': {n: tuple(c) for n, c in plan['targets'].items()},
+                'robot_positions': {c: tuple(p)
+                                    for c, p in plan['robot_positions'].items()},
+                'target_order': list(plan['target_order']),
+                'rounds': plan['rounds'],
+                'safe_transforms': [(0, False)],
+                'certification': {'method': 'endpoint_design_exact_chaos_bfs'},
+            }
+            try:
+                entry = validate_catalog_entry(entry, exact=True)
+            except ValueError as error:
+                print(f'rejected Chaos board {board_seed} attempt {attempt}: {error}',
+                      flush=True)
+                continue
+            accepted_entry = entry
+            break
+        if accepted_entry is not None:
+            break
+
+    if accepted_entry is None:
+        raise RuntimeError(f'Accepted 0/{target_chaos} Chaos maps.')
+    existing.append(accepted_entry)
+    catalog['maps'].append(encode_map_entry(accepted_entry))
+    save_catalog(catalog, path)
+    steps = [item['steps'] for item in accepted_entry['rounds']]
+    mech = sum(
+        item['features'].get('chaos_events', 0) > 0
+        for item in accepted_entry['rounds']
+    )
+    print(
+        f'accepted {accepted_entry["id"]}: {mech}/17 mechanic rounds, '
+        f'steps {min(steps)}-{max(steps)} {steps}',
         flush=True,
     )
 
@@ -1032,6 +1370,7 @@ def build_catalog(
     seed,
     exact,
     max_attempts,
+    target_chaos=1,
 ):
     catalog = load_catalog(path) if os.path.exists(path) else empty_catalog()
     existing = [decode_map_entry(item) for item in catalog['maps']]
@@ -1094,6 +1433,7 @@ def build_catalog(
     ensure_expert_catalog(catalog, target_expert, path)
     ensure_momentum_catalog(catalog, target_momentum, path)
     ensure_super_expert_catalog(catalog, target_super_expert, path)
+    ensure_chaos_catalog(catalog, target_chaos, path)
     for encoded_entry in catalog['maps']:
         if encoded_entry['mode'] in ('hard', 'super_expert'):
             encoded_entry['safe_transforms'] = [[0, False], [0, True]]
@@ -1112,6 +1452,7 @@ def main():
     parser.add_argument('--target-expert', type=int, default=1)
     parser.add_argument('--target-momentum', type=int, default=1)
     parser.add_argument('--target-super-expert', type=int, default=1)
+    parser.add_argument('--target-chaos', type=int, default=1)
     parser.add_argument('--seed', type=int, default=20260614)
     parser.add_argument('--max-attempts', type=int, default=5000)
     parser.add_argument(
@@ -1137,16 +1478,18 @@ def main():
         args.seed,
         args.exact,
         max(1, args.max_attempts),
+        target_chaos=max(1, args.target_chaos),
     )
     hard_count = sum(item['mode'] == 'hard' for item in catalog['maps'])
     normal_count = sum(item['mode'] == 'normal' for item in catalog['maps'])
     expert_count = sum(item['mode'] == 'expert' for item in catalog['maps'])
     momentum_count = sum(item['mode'] == 'v3_momentum' for item in catalog['maps'])
     super_count = sum(item['mode'] == 'super_expert' for item in catalog['maps'])
+    chaos_count = sum(item['mode'] == 'chaos' for item in catalog['maps'])
     print(
         f'catalog ready: {normal_count} Normal / {hard_count} Hard / '
         f'{expert_count} Expert / {momentum_count} Momentum / '
-        f'{super_count} Super Expert maps '
+        f'{super_count} Super Expert / {chaos_count} Chaos maps '
         f'-> {args.output}'
     )
 

@@ -71,6 +71,8 @@ class SolverThread(QThread):
         grid_size=16,
         diagonal_walls=None,
         movement_mode='classic',
+        portals=None,
+        sand_cells=None,
     ):
         super().__init__()
         self.task_id = task_id
@@ -81,6 +83,8 @@ class SolverThread(QThread):
         self.grid_size = grid_size
         self.diagonal_walls = diagonal_walls or {}
         self.movement_mode = movement_mode
+        self.portals = portals or {}
+        self.sand_cells = list(sand_cells or ())
         self._cancelled = False
 
     def cancel(self):
@@ -96,6 +100,8 @@ class SolverThread(QThread):
             grid_size=self.grid_size,
             diagonal_walls=diag,
             movement_mode=self.movement_mode,
+            portals=self.portals,
+            sand_cells=self.sand_cells,
         )
         steps, path = solver.solve(
             self.robots_dict,
@@ -124,6 +130,8 @@ class TargetPickerThread(QThread):
         exclude_current=False,
         validated_target_order=None,
         quality=None,
+        portals=None,
+        sand_cells=None,
     ):
         super().__init__()
         self.task_id = task_id
@@ -138,6 +146,8 @@ class TargetPickerThread(QThread):
         self.exclude_current = exclude_current
         self.validated_target_order = list(validated_target_order or [])
         self.quality = dict(quality or {})
+        self.portals = portals or {}
+        self.sand_cells = list(sand_cells or ())
         self._cancelled = False
 
     def cancel(self):
@@ -192,6 +202,8 @@ class TargetPickerThread(QThread):
                 grid_size=self.grid_size,
                 diagonal_walls=diag,
                 movement_mode=self.movement_mode,
+                portals=self.portals,
+                sand_cells=self.sand_cells,
             )
             steps, path = solver.solve(
                 self.robots_dict,
@@ -217,11 +229,11 @@ class TargetPickerThread(QThread):
         if not candidates:
             return self.current_target_idx
 
-        # Momentum solving is slow (~1s+/candidate); re-solving every candidate to
-        # re-validate difficulty froze "抽選目標中..." for ~20s after each round.
-        # The catalog momentum session is already certified, so just follow the
-        # validated order (candidates are already in that order).
-        if self.movement_mode == 'momentum' and self.validated_target_order:
+        # Momentum/chaos solving is slow (~1s+/candidate); re-solving every
+        # candidate to re-validate difficulty froze "抽選目標中..." for ~20s
+        # after each round. The catalog session is already certified, so just
+        # follow the validated order (candidates are already in that order).
+        if self.movement_mode in ('momentum', 'chaos') and self.validated_target_order:
             return candidates[0]
 
         if self.validated_target_order:
@@ -459,6 +471,15 @@ class BoardView(QGraphicsView):
         if os.path.exists(path):
             self.raw_pixmaps["Silver"] = QPixmap(path)
 
+        # chaos tiles: coloured/white portals + sand
+        for color in ['red', 'blue', 'green', 'yellow', 'white']:
+            path = os.path.join(base_dir, f"portal_{color}.png")
+            if os.path.exists(path):
+                self.raw_pixmaps[f"Portal_{color.capitalize()}"] = QPixmap(path)
+        path = os.path.join(base_dir, "sand_block.png")
+        if os.path.exists(path):
+            self.raw_pixmaps["Sand"] = QPixmap(path)
+
     def get_token_pixmap(self, name, size=None):
         pm = self.raw_pixmaps.get(name)
         if pm and not pm.isNull():
@@ -513,6 +534,24 @@ class BoardView(QGraphicsView):
                     color = COLORED_VWALLS.get((r, c))
                     wp = QPen(QColor(color) if color else QColor("#DDDDDD"), 5)
                     self.scene.addLine(x + cs, y, x + cs, y + cs, wp)
+
+        # chaos tiles under targets/robots: sand first, then portals
+        for (sr, sc) in getattr(self.engine, 'sand_cells', []) or []:
+            pm = self.get_token_pixmap('Sand', size=None)
+            if pm.width() > 0:
+                item = QGraphicsPixmapItem(pm)
+                item.setScale(cs / pm.width())
+                item.setPos(sc * cs, sr * cs)
+                item.setZValue(0.4)
+                self.scene.addItem(item)
+        for (pr, pc), portal in (getattr(self.engine, 'portals', {}) or {}).items():
+            pm = self.get_token_pixmap(f"Portal_{portal['color'].capitalize()}", size=None)
+            if pm.width() > 0:
+                item = QGraphicsPixmapItem(pm)
+                item.setScale(cs / pm.width())
+                item.setPos(pc * cs, pr * cs)
+                item.setZValue(0.4)
+                self.scene.addItem(item)
 
         diag_walls = self.engine.diagonal_walls
         if diag_walls:
@@ -1096,7 +1135,10 @@ class MainWindow(QMainWindow):
         
         self.btn_super_expert = QPushButton("Super Expert")
         self.btn_super_expert.clicked.connect(lambda: self.switch_difficulty('super_expert'))
-        
+
+        self.btn_chaos = QPushButton("Chaos")
+        self.btn_chaos.clicked.connect(lambda: self.switch_difficulty('chaos'))
+
         self.difficulty_btns = {
             'easy': self.btn_easy,
             'normal': self.btn_normal,
@@ -1104,6 +1146,7 @@ class MainWindow(QMainWindow):
             'expert': self.btn_expert,
             'v3_momentum': self.btn_v3_momentum,
             'super_expert': self.btn_super_expert,
+            'chaos': self.btn_chaos,
         }
         self.update_difficulty_button_styles()
 
@@ -1149,6 +1192,7 @@ class MainWindow(QMainWindow):
         top_bar_layout.addWidget(self.btn_expert)
         top_bar_layout.addWidget(self.btn_v3_momentum)
         top_bar_layout.addWidget(self.btn_super_expert)
+        top_bar_layout.addWidget(self.btn_chaos)
         top_bar_layout.addStretch()
         top_bar_layout.addWidget(self.music_btn)
         top_bar_layout.addWidget(self.sound_btn)
@@ -1232,8 +1276,12 @@ class MainWindow(QMainWindow):
             f"Expert：彩色斜牆反射；{contract_line('expert')}，"
             f"至少 {expert_rounds} 題的最短解實際觸發反射。\n\n"
             f"Momentum：動量推撞規則；{contract_line('v3_momentum')}，"
-            f"{momentum_rounds} 題全部都需要至少一次動量碰撞才能達成最短解。\n\n"
-            f"Super Expert：16x16 密集認證拓樸；{contract_line('super_expert')}。"
+            f"{momentum_rounds} 題全部「最後一步必為動量碰撞」——"
+            "每一題的最短解都是把機器人撞到目標上（或撞停在目標上）收尾。\n\n"
+            f"Super Expert：16x16 密集認證拓樸；{contract_line('super_expert')}。\n\n"
+            f"Chaos：25x25 大盤面，斜牆反射＋傳送門＋沙格＋動量推撞全部同時生效；"
+            f"{contract_line('chaos')}，17 題每題的最短解都至少觸發一次特殊機制。"
+            "彩色傳送門只有同色機器人可用、白色人人可用；任何機器人進入沙格立即停止。"
         )
 
     # ====== Audio Handlers ======
@@ -1372,6 +1420,8 @@ class MainWindow(QMainWindow):
             grid_size=self.engine.grid_size,
             diagonal_walls=self.engine.diagonal_walls,
             movement_mode=self.engine._solver_movement_mode(),
+            portals=self.engine.portals,
+            sand_cells=self.engine.sand_cells,
         )
         self.active_solver_thread = thread
         thread.finished_signal.connect(self.on_solver_finished)
@@ -1622,8 +1672,12 @@ class MainWindow(QMainWindow):
                 return
         self.do_next_target(mark_completed=mark_completed)
 
+    def _uses_async_target_pick(self):
+        # modes whose solving is too slow for a synchronous pick
+        return self.engine.difficulty_mode in ('v3_momentum', 'chaos')
+
     def do_next_target(self, mark_completed=True):
-        if self.engine.difficulty_mode == 'v3_momentum':
+        if self._uses_async_target_pick():
             self.start_momentum_target_pick(
                 mark_completed=mark_completed,
                 exclude_current=not mark_completed,
@@ -1658,7 +1712,7 @@ class MainWindow(QMainWindow):
                 self.target_label.setText("成功！")
                 self.target_label.setStyleSheet("color: #55FF55;")
                 self.play_sound('target')
-                if self.engine.difficulty_mode == 'v3_momentum':
+                if self._uses_async_target_pick():
                     self.start_momentum_target_pick(
                         mark_completed=True,
                         exclude_current=False,
@@ -1674,7 +1728,7 @@ class MainWindow(QMainWindow):
     def success_tick(self):
         self.success_ticks += 1
         target_pick_ready = (
-            self.engine.difficulty_mode != 'v3_momentum'
+            not self._uses_async_target_pick()
             or self.pending_momentum_target_pick is not None
         )
         if self.success_ticks >= 30 and target_pick_ready:
@@ -1692,7 +1746,7 @@ class MainWindow(QMainWindow):
 
     def auto_next(self):
         if not self.engine.test_mode:
-            if self.engine.difficulty_mode == 'v3_momentum':
+            if self._uses_async_target_pick():
                 if self.pending_momentum_target_pick is not None:
                     self.apply_momentum_target_pick(self.pending_momentum_target_pick)
                 else:
@@ -1755,6 +1809,8 @@ class MainWindow(QMainWindow):
             exclude_current=exclude_current,
             validated_target_order=self.engine.validated_target_order,
             quality=self.engine.generated_quality,
+            portals=self.engine.portals,
+            sand_cells=self.engine.sand_cells,
         )
         thread.defer_apply = defer_apply
         thread.mark_completed = mark_completed
@@ -1797,7 +1853,11 @@ class MainWindow(QMainWindow):
             self.play_sound('finish')
             QMessageBox.information(self, "恭喜", "恭喜破關！準備開始下一輪。")
             self.engine.win_count += 1
-            self.engine.reset_to_v3_momentum_board(full_reset=False)
+            if self.engine.difficulty_mode == 'chaos':
+                # replay the same certified chaos map from its start
+                self.engine.reset_game(full_reset=False)
+            else:
+                self.engine.reset_to_v3_momentum_board(full_reset=False)
             self.board_view.highlight_item.hide()
             self.board_view.selected_color = None
             self.board_view.full_redraw()
@@ -1953,6 +2013,7 @@ class MainWindow(QMainWindow):
             'expert': ('background-color: #F44336;', 'background-color: rgba(244,67,54,0.3);'),
             'v3_momentum': ('background-color: #00A896;', 'background-color: rgba(0,168,150,0.3);'),
             'super_expert': ('background-color: #9C27B0;', 'background-color: rgba(156,39,176,0.3);'),
+            'chaos': ('background-color: #E91E8C;', 'background-color: rgba(233,30,140,0.3);'),
         }
         for mode, btn in self.difficulty_btns.items():
             active_style, inactive_style = styles[mode]
