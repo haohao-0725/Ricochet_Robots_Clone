@@ -81,6 +81,39 @@ COLORED_VWALLS = {
     (7, 6): 'blue'  # 範例：將頂部 (0, 10) 處的牆面塗黃
 }
 
+
+def _seal_center_block(board):
+    """Seal the central 2x2 obstacle from both sides of every perimeter wall."""
+    grid_size = len(board)
+    center_start = grid_size // 2 - 1
+    center_end = grid_size // 2
+    center_indices = (center_start, center_end)
+
+    for r in center_indices:
+        for c in center_indices:
+            board[r][c] = {
+                'top': True,
+                'bottom': True,
+                'left': True,
+                'right': True,
+            }
+
+    # Movement checks the wall on the robot's current cell.  The neighboring
+    # cells therefore need the matching wall too; otherwise the GUI can draw a
+    # center wall that a robot is still able to enter through.
+    if center_start > 0:
+        for c in center_indices:
+            board[center_start - 1][c]['bottom'] = True
+    if center_end < grid_size - 1:
+        for c in center_indices:
+            board[center_end + 1][c]['top'] = True
+    if center_start > 0:
+        for r in center_indices:
+            board[r][center_start - 1]['right'] = True
+    if center_end < grid_size - 1:
+        for r in center_indices:
+            board[r][center_end + 1]['left'] = True
+
 def build_board_matrix():
     """
     將集合資料轉換為 Agent 尋路演算法容易使用的 2D 陣列 (16x16)。
@@ -109,9 +142,7 @@ def build_board_matrix():
             board[r][c+1]['left'] = True
             
     # 4. 處理中央 2x2 障礙物內部 (封死內部空間，防止 Agent 邏輯穿透)
-    for r in [7, 8]:
-        for c in [7, 8]:
-            board[r][c] = {'top': True, 'bottom': True, 'left': True, 'right': True}
+    _seal_center_block(board)
 
     return board
 
@@ -143,14 +174,7 @@ def build_board_matrix_from_walls(h_walls, v_walls, grid_size=GRID_SIZE):
             board[r][c+1]['left'] = True
             
     # 4. 處理中央 2x2 障礙物內部 (封死內部空間，防止 Agent 邏輯穿透)
-    center_start = grid_size // 2 - 1
-    center_end = grid_size // 2
-    for r in [center_start, center_end]:
-        for c in [center_start, center_end]:
-            board[r][c]['top'] = True
-            board[r][c]['bottom'] = True
-            board[r][c]['left'] = True
-            board[r][c]['right'] = True
+    _seal_center_block(board)
             
     return board
 

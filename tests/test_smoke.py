@@ -165,6 +165,48 @@ def test_easy_remains_static():
     assert engine.board == build_board_matrix()
 
 
+def test_center_obstacle_walls_are_bidirectional():
+    """中央 2x2 障礙的顯示牆與移動碰撞必須在兩側一致。"""
+    from chaos_rules import resolve_chaos_move
+    from ricochet_robots_board_data import build_board_matrix_from_walls
+
+    for grid_size in (16, 25):
+        board = build_board_matrix_from_walls([], [], grid_size=grid_size)
+        center_start = grid_size // 2 - 1
+        center_end = grid_size // 2
+
+        for c in (center_start, center_end):
+            assert board[center_start - 1][c]["bottom"]
+            assert board[center_start][c]["top"]
+            assert board[center_end][c]["bottom"]
+            assert board[center_end + 1][c]["top"]
+
+        for r in (center_start, center_end):
+            assert board[r][center_start - 1]["right"]
+            assert board[r][center_start]["left"]
+            assert board[r][center_end]["right"]
+            assert board[r][center_end + 1]["left"]
+
+        approaches = (
+            ((center_start - 1, center_start), "bottom"),
+            ((center_end + 1, center_start), "top"),
+            ((center_start, center_start - 1), "right"),
+            ((center_start, center_end + 1), "left"),
+        )
+        for start, direction in approaches:
+            robots = {
+                "Red": start,
+                "Blue": (0, 0),
+                "Green": (0, 1),
+                "Yellow": (0, 2),
+            }
+            result = resolve_chaos_move(
+                board, {}, {}, [], robots, "Red", direction,
+            )
+            assert not result.moved
+            assert result.robots["Red"] == start
+
+
 def test_solver_optimal_path_and_replay():
     """A* 應保留最短解，且 canonical helper path 可正確還原顏色。"""
     from ricochet_robots_board_data import TARGETS, build_board_matrix
@@ -312,6 +354,7 @@ def test_momentum_move():
 if __name__ == "__main__":
     test_gui_construction()
     test_easy_remains_static()
+    test_center_obstacle_walls_are_bidirectional()
     test_board_generation()
     test_solver_optimal_path_and_replay()
     test_generated_round_chain_and_test_mode()

@@ -6,18 +6,19 @@ Ricochet Robots 的 Python / PyQt6 桌面版。遊戲包含經典 16x16 棋盤�
 
 Windows 使用者請到最新 GitHub Release 下載：
 
-- [RicochetRobots.exe](https://github.com/haohao-0725/Ricochet_Robots_Clone/releases/download/v3.0.0/RicochetRobots.exe)
+- [RicochetRobots.exe](https://github.com/haohao-0725/Ricochet_Robots_Clone/releases/latest/download/RicochetRobots.exe)
 
 GitHub Release 頁面底部會自動出現 `Source code (zip)` 和 `Source code (tar.gz)`。那是 GitHub 自動產生的原始碼壓縮檔，不是遊戲執行檔。只想玩遊戲的話，請下載 `RicochetRobots.exe`。
 
 ## 遊戲功能
 
 - Easy：固定 16x16 經典棋盤，4 台機器人。
-- Normal / Hard / Expert / Momentum / Super Expert：皆改用 `assets/map_catalog_v2.json`
+- Normal / Hard / Expert / Momentum / Super Expert / Chaos：皆改用 `assets/map_catalog_v2.json`
   的離線認證地圖庫；切換模式時抽選已通過 exact A* / BFS 驗證的盤面並套用等價幾何變換，
   不再即時進行昂貴搜尋。各模式的 17 回合難度合約見 `docs/map_catalog_v2.md`。
 - Momentum：加入動量推撞規則，最短解多數回合需觸發推撞。
 - Super Expert：16x16 密集拓樸（由最難的 Hard 盤面套用幾何變換），較嚴格的平均複雜度門檻。
+- Chaos：25x25 棋盤，整合動量、彩色斜牆、傳送門與沙地機制。
 - 支援存檔、讀檔、重開目前難度、undo、破關次數統計（舊版不相容存檔會自動重新生成最新盤面）。
 - 內建 BFS 最短解答器，可在提示面板計算最佳解。
 
