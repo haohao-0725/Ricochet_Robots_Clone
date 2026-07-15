@@ -32,6 +32,11 @@ from ricochet_robots_board_data import (
     build_board_matrix_from_walls,
 )
 from solver import RicochetSolver
+from wall_layout import (
+    is_clean_wall_layout,
+    wall_component_metrics,
+    wall_layout_summary,
+)
 
 
 # Test-version toggle: spread targets across the board (set by --spread in main).
@@ -842,6 +847,12 @@ CHAOS_SAND_COUNT = 8
 CHAOS_DIAG_COUNT = 8
 CHAOS_WALL_TARGET = 110
 CHAOS_SPECIALS = ('teleport', 'sand_stop', 'reflect', 'robot_collision')
+CHAOS_MAX_COMPONENT_EDGES = 4
+CHAOS_MAX_CYCLE_RANK = 0
+CHAOS_MAX_BRANCH_EXCESS = 1
+CHAOS_MAX_DEGREE = 3
+CHAOS_MAX_STRAIGHT_RUN = 2
+CHAOS_MIN_WITNESS_COMPONENT_COVERAGE = 0.50
 
 
 def add_l_wall_n(h_walls, v_walls, position, orientation, n):
@@ -863,6 +874,40 @@ def add_l_wall_n(h_walls, v_walls, position, orientation, n):
     return True
 
 
+def add_clean_symmetric_l_pair(h_walls, v_walls, position, orientation, n):
+    """Atomically add a rotational pair only if all wall groups stay simple."""
+    r, c = position
+    trial_h = set(h_walls)
+    trial_v = set(v_walls)
+    add_l_wall_n(trial_h, trial_v, position, orientation, n)
+    add_l_wall_n(
+        trial_h,
+        trial_v,
+        (n - 1 - r, n - 1 - c),
+        3 - orientation,
+        n,
+    )
+    # A rotational L pair contributes four fresh segments.  Overlap would
+    # leave a partial motif/stub even when the final component still passes.
+    if len(trial_h) + len(trial_v) != len(h_walls) + len(v_walls) + 4:
+        return False
+    if not is_clean_wall_layout(
+        trial_h,
+        trial_v,
+        max_component_edges=CHAOS_MAX_COMPONENT_EDGES,
+        max_cycle_rank=CHAOS_MAX_CYCLE_RANK,
+        max_branch_excess=CHAOS_MAX_BRANCH_EXCESS,
+        max_degree=CHAOS_MAX_DEGREE,
+        max_straight_run=CHAOS_MAX_STRAIGHT_RUN,
+    ):
+        return False
+    h_walls.clear()
+    h_walls.update(trial_h)
+    v_walls.clear()
+    v_walls.update(trial_v)
+    return True
+
+
 def build_chaos_board_spec(seed):
     """25x25 chaos board: 180-degree symmetric L-walls, 5 portal pairs
     (4 robot-coloured + 1 white universal), sand cells and coloured diagonals.
@@ -878,8 +923,16 @@ def build_chaos_board_spec(seed):
         if 10 <= r <= 14 and 10 <= c <= 14:
             continue
         orientation = rng.randrange(4)
-        add_l_wall_n(h_walls, v_walls, (r, c), orientation, n)
-        add_l_wall_n(h_walls, v_walls, (n - 1 - r, n - 1 - c), 3 - orientation, n)
+        add_clean_symmetric_l_pair(
+            h_walls,
+            v_walls,
+            (r, c),
+            orientation,
+            n,
+        )
+
+    if len(h_walls) + len(v_walls) < CHAOS_WALL_TARGET:
+        return None
 
     used = set(CHAOS_CENTER)
     cells = [(r, c) for r in range(n) for c in range(n) if (r, c) not in used]
@@ -935,6 +988,24 @@ def build_chaos_board_spec(seed):
         'diagonal_walls': diagonal_walls,
         'special_cells': set(used) - set(CHAOS_CENTER),
     }
+
+
+def witness_critical_wall_component_coverage(entry):
+    """Cheap lower bound on function: remove each component and replay witnesses."""
+    components = wall_component_metrics(entry['h_walls'], entry['v_walls'])
+    critical = 0
+    for component in components:
+        candidate = deepcopy(entry)
+        candidate['h_walls'] = set(candidate['h_walls'])
+        candidate['v_walls'] = set(candidate['v_walls'])
+        for orientation, r, c in component.walls:
+            candidate[f'{orientation}_walls'].discard((r, c))
+        try:
+            validate_catalog_entry(candidate, exact=False)
+        except (KeyError, ValueError):
+            critical += 1
+    coverage = critical / len(components) if components else 1.0
+    return critical, len(components), coverage
 
 
 def chaos_endpoints(board, spec, config, cap=60000):
@@ -1095,7 +1166,7 @@ def ensure_chaos_catalog(catalog, target_chaos, path):
     if len(existing) >= target_chaos:
         return
     accepted_entry = None
-    for board_seed in range(8):
+    for board_seed in range(64):
         spec = build_chaos_board_spec(91000 + board_seed)
         if spec is None:
             continue
@@ -1138,6 +1209,24 @@ def ensure_chaos_catalog(catalog, target_chaos, path):
                 print(f'rejected Chaos board {board_seed} attempt {attempt}: {error}',
                       flush=True)
                 continue
+            critical, component_count, coverage = (
+                witness_critical_wall_component_coverage(entry)
+            )
+            if coverage < CHAOS_MIN_WITNESS_COMPONENT_COVERAGE:
+                print(
+                    f'rejected Chaos board {board_seed} attempt {attempt}: '
+                    f'witness-critical wall coverage {coverage:.1%} < '
+                    f'{CHAOS_MIN_WITNESS_COMPONENT_COVERAGE:.0%}.',
+                    flush=True,
+                )
+                continue
+            entry['features'].update(wall_layout_summary(
+                entry['h_walls'], entry['v_walls'],
+            ))
+            entry['features'].update({
+                'witness_critical_wall_components': critical,
+                'witness_wall_component_coverage': round(coverage, 3),
+            })
             accepted_entry = entry
             break
         if accepted_entry is not None:
@@ -1154,7 +1243,10 @@ def ensure_chaos_catalog(catalog, target_chaos, path):
         for item in accepted_entry['rounds']
     )
     print(
-        f'accepted {accepted_entry["id"]}: {mech}/17 mechanic rounds, '
+        f'accepted {accepted_entry["id"]}: '
+        f'{component_count} clean wall groups, '
+        f'{critical}/{component_count} witness-critical ({coverage:.1%}), '
+        f'{mech}/{len(accepted_entry["rounds"])} mechanic rounds, '
         f'steps {min(steps)}-{max(steps)} {steps}',
         flush=True,
     )

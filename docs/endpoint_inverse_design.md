@@ -93,6 +93,15 @@ plan_session(h_walls, v_walls, lo, hi, min_robots, ...)         # 任意自訂�
 
 **Chaos 模式（25×25，四機制合一）**：`chaos_rules.py` 合併動量推撞＋斜牆反射＋傳送門（彩色限同色、白色萬用、出口被佔則失效、傳送不耗動量）＋沙格（進入即停、吸收剩餘動量），進格效果順序＝沙格→傳送門→斜牆。設計器樣板照抄 momentum：`chaos_endpoints`（機制旗標＝任一特殊事件）＋ `plan_chaos_endpoint_session`（目標不放特殊格）。25×25 中央 2×2 落在 (11,11)–(12,12)（`grid//2-1..grid//2`，桌面/手機建板函式皆自動處理）。合約：5–11 步、17 題全部至少一次特殊機制、exact 認證。目錄欄位新增 `portals` / `sand_cells`（map_catalog 編解碼、簽章僅在非空時納入以保持舊圖簽章不變）。**手機版規則一致性**：以 400 組隨機移動向量比對 Python `resolve_chaos_move` 與 JS `chaosMove`，400/400 全同。
 
+**Chaos 牆面 grammar（2026-07-14）**：`wall_layout.py` 將 `h(r,c)` 映成格點邊
+`((r+1,c),(r+1,c+1))`，將 `v(r,c)` 映成 `((r,c+1),(r+1,c+1))`。
+每次加入一組 L 與其 180° 對稱副本時，四段都必須是新牆，且所有 connected component
+需滿足 `E≤4`、cycle rank `E-V+1=0`、`Σmax(0,degree-2)≤1`、最大 degree 3、
+最長共線段 2。這保留 L／T／短折線，排除封閉 pocket、多分枝與長主幹。牆面通過後
+仍走完整 endpoint planning 與 exact 認證；最後以逐 component ablation 重播 witness，
+要求至少 50% 的牆群是 witness-critical。正式 clean Chaos 盤面仍為 17 題全 8 步、
+17/17 題觸發特殊機制，最大牆群由 8 降到 4，複雜牆群由 6 降到 0。
+
 ## 7. 泛用性與效能現況（2026-07-03 實測）
 
 - 泛用性：4 板（含 2 張隨機突變板）× 6 帶（含 4 條未出貨自訂帶、min_robots=4 極端帶）= **24/24**；momentum 3 板 × 2 起點 = **6/6**。設計器對板面與帶都是參數化泛用的。

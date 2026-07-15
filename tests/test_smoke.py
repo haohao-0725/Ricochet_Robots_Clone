@@ -207,6 +207,33 @@ def test_center_obstacle_walls_are_bidirectional():
             assert result.robots["Red"] == start
 
 
+def test_wall_layout_complexity_filter():
+    """L/T 牆群可接受；截圖型分枝迴圈牆群必須被拒絕。"""
+    from board_generator import BoardGenerator
+    from wall_layout import is_clean_wall_layout, wall_component_metrics
+
+    assert is_clean_wall_layout({(0, 0)}, {(0, 0)})
+    assert is_clean_wall_layout({(0, 0), (0, 1)}, {(0, 0)})
+
+    screenshot_h = {(1, 5), (2, 4), (2, 5), (3, 5)}
+    screenshot_v = {(2, 4), (2, 5), (3, 4), (4, 4)}
+    component = wall_component_metrics(screenshot_h, screenshot_v)[0]
+    assert component.edge_count == 8
+    assert component.cycle_rank == 1
+    assert component.branch_excess == 3
+    assert component.max_degree == 4
+    assert not is_clean_wall_layout(screenshot_h, screenshot_v)
+
+    generator = BoardGenerator()
+    symmetric_h = {(1, 2), (22, 22)}
+    symmetric_v = {(3, 4), (21, 19)}
+    assert generator._rotational_symmetry_score(
+        symmetric_h, symmetric_v, grid_size=25,
+    ) == 1.0
+    assert generator._cell_quadrant((11, 11), grid_size=25) == "tl"
+    assert generator._cell_quadrant((12, 12), grid_size=25) == "br"
+
+
 def test_solver_optimal_path_and_replay():
     """A* 應保留最短解，且 canonical helper path 可正確還原顏色。"""
     from ricochet_robots_board_data import TARGETS, build_board_matrix
@@ -330,6 +357,16 @@ def test_release_catalog_invariants():
         )
         assert collision_rounds >= 15, f"只有 {collision_rounds} 題含推撞"
 
+    from wall_layout import is_clean_wall_layout, wall_layout_summary
+
+    chaos = by_mode.get("chaos", [])
+    assert chaos, "缺少 Chaos 認證地圖"
+    for item in chaos:
+        assert is_clean_wall_layout(item["h_walls"], item["v_walls"])
+        summary = wall_layout_summary(item["h_walls"], item["v_walls"])
+        assert summary["complex_wall_component_count"] == 0
+        assert item["features"]["witness_wall_component_coverage"] >= 0.50
+
 
 def test_momentum_move():
     """Momentum (v3) 規則：主動機器人撞到牆前一格停下。"""
@@ -355,6 +392,7 @@ if __name__ == "__main__":
     test_gui_construction()
     test_easy_remains_static()
     test_center_obstacle_walls_are_bidirectional()
+    test_wall_layout_complexity_filter()
     test_board_generation()
     test_solver_optimal_path_and_replay()
     test_generated_round_chain_and_test_mode()

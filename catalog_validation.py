@@ -8,10 +8,19 @@ from board_generator import BoardGenerator
 from mode_contracts import get_mode_contract, session_meets_contract
 from ricochet_robots_board_data import build_board_matrix_from_walls
 from solver import RicochetSolver
+from wall_layout import wall_layout_summary
 
 
 def validate_catalog_entry(entry, exact=False):
     mode = entry['mode']
+    if mode == 'chaos':
+        layout_summary = wall_layout_summary(entry['h_walls'], entry['v_walls'])
+        if layout_summary['complex_wall_component_count']:
+            raise ValueError(
+                f'{entry["id"]}: Chaos wall layout contains '
+                f'{layout_summary["complex_wall_component_count"]} '
+                'complex components.'
+            )
     contract = get_mode_contract(mode)
     board = build_board_matrix_from_walls(
         entry['h_walls'],
@@ -137,7 +146,7 @@ def describe_entry(entry):
         ),
         default=0,
     )
-    return {
+    features = {
         'wall_count': len(entry['h_walls']) + len(entry['v_walls']),
         'wall_density': round(
             (len(entry['h_walls']) + len(entry['v_walls']))
@@ -164,6 +173,8 @@ def describe_entry(entry):
         'trajectory_signature': trajectory_signature(entry['rounds']),
         'topology_signature': topology_signature(entry),
     }
+    features.update(wall_layout_summary(entry['h_walls'], entry['v_walls']))
+    return features
 
 
 def topology_signature(entry):

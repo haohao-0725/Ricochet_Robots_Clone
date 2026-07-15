@@ -13,6 +13,7 @@ from ricochet_robots_board_data import (
     build_board_matrix_from_walls,
 )
 from solver import RicochetSolver
+from wall_layout import wall_component_metrics, wall_layout_summary
 
 
 CENTER_CELLS = {(7, 7), (7, 8), (8, 7), (8, 8)}
@@ -504,6 +505,7 @@ class BoardGenerator:
             # structural metrics / reachability precheck are 16x16-tuned; the
             # chaos entry is already exact-certified offline, so use pass-through
             # values instead of running them on the 25x25 board
+            layout_summary = wall_layout_summary(h_walls, v_walls)
             metrics = BoardQualityMetrics(
                 wall_count=len(h_walls) + len(v_walls),
                 target_quadrant_balance=0,
@@ -514,7 +516,7 @@ class BoardGenerator:
                 average_steps=sum(steps) / len(steps),
                 max_steps=max(steps),
                 symmetry_score=1.0,
-                max_wall_cluster=0,
+                max_wall_cluster=layout_summary['max_wall_cluster'],
                 validated_rounds=len(rounds),
                 total_round_steps=sum(steps),
             )
@@ -566,6 +568,13 @@ class BoardGenerator:
             'geometry_rotation': rotations * 90,
             'geometry_mirrored': mirror,
         })
+        if mode == 'chaos':
+            result['quality'].update(layout_summary)
+            result['quality'].update({
+                key: value
+                for key, value in base.get('features', {}).items()
+                if key.startswith('witness_')
+            })
         return result
 
     def _transform_diagonal_type(self, wall_type, rotations, mirror):
@@ -1581,15 +1590,16 @@ class BoardGenerator:
         return value if value >= 0 else 0
 
     def _structural_metrics(self, board_matrix, h_walls, v_walls, targets):
+        grid_size = len(board_matrix)
         quadrant_counts = {quadrant: 0 for quadrant in QUADRANTS}
         for position in targets.values():
-            quadrant_counts[self._cell_quadrant(position)] += 1
+            quadrant_counts[self._cell_quadrant(position, grid_size)] += 1
 
         wall_quadrants = {quadrant: 0 for quadrant in QUADRANTS}
         for r, c in h_walls:
-            wall_quadrants[self._cell_quadrant((r, c))] += 1
+            wall_quadrants[self._cell_quadrant((r, c), grid_size)] += 1
         for r, c in v_walls:
-            wall_quadrants[self._cell_quadrant((r, c))] += 1
+            wall_quadrants[self._cell_quadrant((r, c), grid_size)] += 1
 
         positions = list(targets.values())
         min_spacing = min(
@@ -1597,7 +1607,9 @@ class BoardGenerator:
             for index, a in enumerate(positions)
             for b in positions[index + 1:]
         )
-        symmetry_score = self._rotational_symmetry_score(h_walls, v_walls)
+        symmetry_score = self._rotational_symmetry_score(
+            h_walls, v_walls, grid_size,
+        )
         max_cluster = self._max_wall_cluster(h_walls, v_walls)
 
         return BoardQualityMetrics(
@@ -1615,13 +1627,13 @@ class BoardGenerator:
             total_round_steps=0,
         )
 
-    def _rotational_symmetry_score(self, h_walls, v_walls):
+    def _rotational_symmetry_score(self, h_walls, v_walls, grid_size=GRID_SIZE):
         transformed_h = {
-            (GRID_SIZE - 2 - r, GRID_SIZE - 1 - c)
+            (grid_size - 2 - r, grid_size - 1 - c)
             for r, c in h_walls
         }
         transformed_v = {
-            (GRID_SIZE - 1 - r, GRID_SIZE - 2 - c)
+            (grid_size - 1 - r, grid_size - 2 - c)
             for r, c in v_walls
         }
         original = {('h', *wall) for wall in h_walls} | {('v', *wall) for wall in v_walls}
@@ -1633,43 +1645,19 @@ class BoardGenerator:
         return len(original & transformed) / len(union) if union else 1.0
 
     def _max_wall_cluster(self, h_walls, v_walls):
-        segments = []
-        for r, c in h_walls:
-            segments.append(((r + 1, c), (r + 1, c + 1)))
-        for r, c in v_walls:
-            segments.append(((r, c + 1), (r + 1, c + 1)))
+        return max(
+            (item.edge_count for item in wall_component_metrics(h_walls, v_walls)),
+            default=0,
+        )
 
-        by_endpoint = {}
-        for index, segment in enumerate(segments):
-            for endpoint in segment:
-                by_endpoint.setdefault(endpoint, []).append(index)
-
-        visited = set()
-        largest = 0
-        for start in range(len(segments)):
-            if start in visited:
-                continue
-            stack = [start]
-            visited.add(start)
-            size = 0
-            while stack:
-                current = stack.pop()
-                size += 1
-                for endpoint in segments[current]:
-                    for neighbor in by_endpoint[endpoint]:
-                        if neighbor not in visited:
-                            visited.add(neighbor)
-                            stack.append(neighbor)
-            largest = max(largest, size)
-        return largest
-
-    def _cell_quadrant(self, position):
+    def _cell_quadrant(self, position, grid_size=GRID_SIZE):
         r, c = position
-        if r < 8 and c < 8:
+        midpoint = grid_size // 2
+        if r < midpoint and c < midpoint:
             return 'tl'
-        if r < 8 and c >= 8:
+        if r < midpoint and c >= midpoint:
             return 'tr'
-        if r >= 8 and c < 8:
+        if r >= midpoint and c < midpoint:
             return 'bl'
         return 'br'
 
